@@ -52,7 +52,7 @@ pub fn createStatic(
 
     if (b.lazyDependency("lua", .{})) |lua_dep|
         lib.addCSourceFiles(.{
-            .root = lua_dep.path(""),
+            .root = lua_dep.path("src"),
             .files = base_sources,
             .flags = flags.toOwnedSlice() catch unreachable,
         });
@@ -81,7 +81,7 @@ pub fn createShared(
 
     if (b.lazyDependency("lua", .{})) |lua_dep|
         lib.addCSourceFiles(.{
-            .root = lua_dep.path(""),
+            .root = lua_dep.path("src"),
             .files = base_sources,
             .flags = flags.toOwnedSlice() catch unreachable,
         });
@@ -107,7 +107,7 @@ pub fn createExecutable(
 
     if (b.lazyDependency("lua", .{})) |lua_dep|
         exe.addCSourceFiles(.{
-            .root = lua_dep.path(""),
+            .root = lua_dep.path("src"),
             .files = exe_sources,
             .flags = flags.toOwnedSlice() catch unreachable,
         });
