@@ -9,7 +9,7 @@ pub fn build(b: *std.Build) void {
 
     _ = .{ optimize, target };
 
-    const lua = b.dependency("lua", .{ .target = target });
+    const lua = b.dependency("luajit", .{ .target = target });
 
     b.installArtifact(lua.artifact("lua-static"));
     b.installArtifact(lua.artifact("lua-shared"));

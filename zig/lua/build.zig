@@ -1,14 +1,19 @@
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
+    const target_os = target.result.os;
+
+    const debug = b.option(bool, "debug", "Build with debug information and with apicheck enabled") orelse false;
+    const optimize: std.builtin.OptimizeMode = if (debug) .Debug else .ReleaseFast;
+
     const static = b.addStaticLibrary(.{
         .name = "lua-static",
         .version = lua_version,
 
         .target = target,
-        .optimize = .ReleaseFast,
+        .optimize = optimize,
         .link_libc = true,
-        .strip = true,
+        .strip = !debug,
         .pic = true,
     });
 
@@ -17,79 +22,74 @@ pub fn build(b: *std.Build) void {
         .version = lua_version,
 
         .target = target,
-        .optimize = .ReleaseFast,
+        .optimize = optimize,
         .link_libc = true,
-        .strip = true,
-        .pic = true,
+        .strip = !debug,
     });
 
     const exe = b.addExecutable(.{
         .name = "lua",
+
         .target = target,
-        .optimize = .ReleaseFast,
+        .optimize = optimize,
         .link_libc = true,
-        .strip = true,
+        .strip = !debug,
     });
-
-    var flags = std.ArrayList([]const u8).init(b.allocator);
-    static.root_module.linkSystemLibrary("m", .{ .needed = true });
-    shared.root_module.linkSystemLibrary("m", .{ .needed = true });
-
-    // Amalgamated list of target flags created using the Lua release tarball's makefile
-    if (target.result.os.tag == .windows) {
-        flags.append("-DLUA_USE_WINDOWS") catch unreachable;
-    } else if (target.result.os.tag == .ios) {
-        flags.append("-DLUA_USE_IOS") catch unreachable;
-    } else {
-        flags.append("-DLUA_USE_POSIX") catch unreachable;
-    }
-
-    // This is the list of platforms that the Lua makefile claims to use dlopen
-    // The list is not exhaustive, support for other platforms should be added as needed
-    if (target.result.os.tag == .linux or
-        target.result.os.tag == .aix or
-        target.result.os.tag.isBSD() or
-        target.result.os.tag.isDarwin() or
-        target.result.os.tag.isSolarish())
-    {
-        flags.append("-DLUA_USE_DLOPEN") catch unreachable;
-
-        static.root_module.linkSystemLibrary("dl", .{ .needed = true });
-        shared.root_module.linkSystemLibrary("dl", .{ .needed = true });
-    }
-
-    if (target.result.os.tag.isSolarish()) {
-        flags.append("-D_REENTRANT") catch unreachable;
-    }
-
-    const flags_slice = flags.toOwnedSlice() catch unreachable;
-    if (b.lazyDependency("lua", .{})) |lua_dep| {
-        const lua_src = lua_dep.path("src");
-
-        static.addCSourceFiles(.{
-            .root = lua_src,
-            .files = base_sources,
-            .flags = flags_slice,
-        });
-
-        shared.addCSourceFiles(.{
-            .root = lua_src,
-            .files = base_sources,
-            .flags = flags_slice,
-        });
-
-        exe.addCSourceFiles(.{
-            .root = lua_src,
-            .files = exe_sources,
-            .flags = flags_slice,
-        });
-    }
-
-    exe.linkLibrary(static);
 
     b.installArtifact(static);
     b.installArtifact(shared);
     b.installArtifact(exe);
+
+    const lua_dep = b.lazyDependency("lua", .{}) orelse return;
+
+    inline for (.{ static, shared }) |lib| {
+        static.root_module.linkSystemLibrary("m", .{ .needed = true });
+
+        if (debug)
+            lib.root_module.addCMacro("LUA_USE_APICHECK", "1");
+
+        if (target_os.tag == .windows) {
+            lib.root_module.addCMacro("LUA_USE_WINDOWS", "1");
+        } else if (target_os.tag == .ios) {
+            lib.root_module.addCMacro("LUA_USE_IOS", "1");
+        } else {
+            lib.root_module.addCMacro("LUA_USE_POSIX", "1");
+        }
+
+        // This is the list of platforms that the Lua makefile claims to use dlopen
+        // The list is not exhaustive, support for other platforms should be added as needed
+        if (target_os.tag == .linux or
+            target_os.tag == .aix or
+            target_os.tag.isBSD() or
+            target_os.tag.isDarwin() or
+            target_os.tag.isSolarish())
+        {
+            lib.root_module.addCMacro("LUA_USE_DLOPEN", "1");
+
+            lib.root_module.linkSystemLibrary("dl", .{ .needed = true });
+        }
+
+        if (target_os.tag.isSolarish()) {
+            lib.root_module.addCMacro("_REENTRANT", "1");
+        }
+
+        lib.addCSourceFiles(.{
+            .root = lua_dep.path("src"),
+            .files = base_sources,
+        });
+
+        lib.installHeader(lua_dep.path("src/lua.h"), "lua.h");
+        lib.installHeader(lua_dep.path("src/luaconf.h"), "luaconf.h");
+        lib.installHeader(lua_dep.path("src/lualib.h"), "lualib.h");
+        lib.installHeader(lua_dep.path("src/lauxlib.h"), "lauxlib.h");
+    }
+
+    exe.addCSourceFiles(.{
+        .root = lua_dep.path("src"),
+        .files = exe_sources,
+    });
+
+    exe.linkLibrary(static);
 }
 
 const lua_version = std.SemanticVersion{ .major = 5, .minor = 4, .patch = 7 };
