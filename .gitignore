@@ -8,3 +8,5 @@ luv-*.tar.gz
 luv-*.src.rock
 luv-*/
 build.luarocks/
+
+.zig-cache
