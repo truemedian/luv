@@ -8,8 +8,12 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     _ = .{ optimize, target };
+
+    const lua = b.dependency("lua", .{ .target = target });
+
+    b.installArtifact(lua.artifact("lua-static"));
+    b.installArtifact(lua.artifact("lua-shared"));
+    b.installArtifact(lua.artifact("lua"));
 }
 
 const std = @import("std");
-
-const lua = @import("deps/lua.zig");

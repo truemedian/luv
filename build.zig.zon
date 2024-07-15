@@ -17,15 +17,7 @@
             .url = "git+https://github.com/keplerproject/lua-compat-5.3#v0.13",
             .hash = "1220e75685f00c242fbf6c1c60e98dd1b24ba99e38277970a10636e44ed08cf2af8a",
         },
-        .luajit = .{
-            .url = "https://github.com/LuaJIT/LuaJIT/archive/0d313b243194a0b8d2399d8b549ca5a0ff234db5.tar.gz",
-            .hash = "1220360690f0119547dc0b9397dc6423cc009362e173849e190247f91b6bc15a0d71",
-            .lazy = true,
-        },
-        .lua = .{
-            .url = "https://www.lua.org/ftp/lua-5.4.7.tar.gz",
-            .hash = "12206df90729936e110f5d2574437be370fc4367b5f44afcc77749ac421547bc8ff0",
-            .lazy = true,
-        },
+        .luajit = .{ .path = "zig/luajit" },
+        .lua = .{ .path = "zig/lua" },
     },
 }
