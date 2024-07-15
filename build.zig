@@ -9,11 +9,14 @@ pub fn build(b: *std.Build) void {
 
     _ = .{ optimize, target };
 
-    const lua = b.dependency("luajit", .{ .target = target });
+    const lua = b.dependency("libuv", .{ .target = target });
 
-    b.installArtifact(lua.artifact("lua-static"));
-    b.installArtifact(lua.artifact("lua-shared"));
-    b.installArtifact(lua.artifact("lua"));
+    b.installArtifact(lua.artifact("libuv-static"));
+    b.installArtifact(lua.artifact("libuv-shared"));
+
+    b.installArtifact(lua.artifact("test-libuv-static"));
+    b.installArtifact(lua.artifact("test-libuv-shared"));
+    // b.installArtifact(lua.artifact("lua"));
 }
 
 const std = @import("std");

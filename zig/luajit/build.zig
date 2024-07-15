@@ -1,15 +1,15 @@
-const luajit_version = find_lj_ver: {
+const luajit_version = find_ver: {
     const zon = @embedFile("build.zig.zon");
 
     // Zig 0.13.0 does not provide the .version field to the builder, so parse it ourselves.
-    const ver_symbol = std.mem.indexOf(u8, zon, ".version") orelse @panic("could not find luajit version");
-    const ver_start = std.mem.indexOfScalarPos(u8, zon, ver_symbol, '"') orelse @panic("could not find luajit version");
-    const ver_end = std.mem.indexOfScalarPos(u8, zon, ver_start + 1, '"') orelse @panic("could not find luajit version");
+    const ver_symbol = std.mem.indexOf(u8, zon, ".version") orelse @panic("could not find zon version");
+    const ver_start = std.mem.indexOfScalarPos(u8, zon, ver_symbol, '"') orelse @panic("could not find zon version");
+    const ver_end = std.mem.indexOfScalarPos(u8, zon, ver_start + 1, '"') orelse @panic("could not find zon version");
 
-    const ver = std.SemanticVersion.parse(zon[ver_start + 1 .. ver_end]) catch @panic("could not parse luajit version");
+    const ver = std.SemanticVersion.parse(zon[ver_start + 1 .. ver_end]) catch @panic("could not parse zon version");
 
-    // Zig requires semantic versions, so we use 2.1.0-<commit-timestamp> as the version.
-    break :find_lj_ver ver.pre.?;
+    // Zig requires semantic versions, so we use 2.1.0-<commit-timestamp> as the version, extract the actual version.
+    break :find_ver ver.pre.?;
 };
 
 pub fn build(b: *std.Build) void {
@@ -38,7 +38,7 @@ pub fn build(b: *std.Build) void {
         .pic = true,
 
         .unwind_tables = true,
-        .omit_frame_pointer = true,
+        .omit_frame_pointer = !debug,
     });
 
     const shared = b.addSharedLibrary(.{
@@ -51,7 +51,7 @@ pub fn build(b: *std.Build) void {
         .strip = !debug,
 
         .unwind_tables = true,
-        .omit_frame_pointer = true,
+        .omit_frame_pointer = !debug,
     });
 
     const exe = b.addExecutable(.{
@@ -63,7 +63,7 @@ pub fn build(b: *std.Build) void {
         .strip = !debug,
 
         .unwind_tables = true,
-        .omit_frame_pointer = true,
+        .omit_frame_pointer = !debug,
     });
 
     b.installArtifact(static);

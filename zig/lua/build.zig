@@ -1,3 +1,16 @@
+const lua_version = find_ver: {
+    const zon = @embedFile("build.zig.zon");
+
+    // Zig 0.13.0 does not provide the .version field to the builder, so parse it ourselves.
+    const ver_symbol = std.mem.indexOf(u8, zon, ".version") orelse @panic("could not find zon version");
+    const ver_start = std.mem.indexOfScalarPos(u8, zon, ver_symbol, '"') orelse @panic("could not find zon version");
+    const ver_end = std.mem.indexOfScalarPos(u8, zon, ver_start + 1, '"') orelse @panic("could not find zon version");
+
+    const ver = std.SemanticVersion.parse(zon[ver_start + 1 .. ver_end]) catch @panic("could not parse zon version");
+
+    break :find_ver ver;
+};
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
@@ -91,8 +104,6 @@ pub fn build(b: *std.Build) void {
 
     exe.linkLibrary(static);
 }
-
-const lua_version = std.SemanticVersion{ .major = 5, .minor = 4, .patch = 7 };
 
 const base_sources: []const []const u8 = &.{
     "lapi.c",     "lcode.c",    "lctype.c",   "ldebug.c",  "ldo.c",      "ldump.c",   "lfunc.c",

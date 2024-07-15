@@ -9,14 +9,11 @@
         "src",
     },
     .dependencies = .{
-        .libuv = .{
-            .url = "git+https://github.com/libuv/libuv#v1.48.0",
-            .hash = "1220c2e1269cfee3735a7331f1fa4c13aa3e4f355fca5b402be3ea72a464c76f1324",
-        },
         .lua_compat_53 = .{
             .url = "git+https://github.com/keplerproject/lua-compat-5.3#v0.13",
             .hash = "1220e75685f00c242fbf6c1c60e98dd1b24ba99e38277970a10636e44ed08cf2af8a",
         },
+        .libuv = .{ .path = "zig/libuv" },
         .luajit = .{ .path = "zig/luajit" },
         .lua = .{ .path = "zig/lua" },
     },
