@@ -6,12 +6,10 @@ lua_mode=$2
 libuv_mode=$3
 debug_mode=$4
 
-flags=""
-
 if [ "$debug_mode" = "debug" ]; then
-    lua_engine="-Ddebug=true"
+    flags="-Ddebug=true"
 elif [ "$debug_mode" = "release" ]; then
-    lua_engine="-Ddebug=false"
+    flags="-Ddebug=false"
 else
     echo "Invalid debug_mode: $debug_mode"; exit 1
 fi
@@ -19,10 +17,10 @@ fi
 if [ "$lua_mode" = "system" ]; then
     flags="$flags -fsys=lua"
 
-    if [ "$lua_engine" = "lua" ]; then
+    if [ "$lua_engine" = "Lua" ]; then
         # unnecessary for the CI runner, but here for completeness
         flags="$flags -Dlua-pkgconf=lua -Dlua-executable=lua5.4"
-    elif [ "$lua_engine" = "luajit" ]; then
+    elif [ "$lua_engine" = "LuaJIT" ]; then
         flags="$flags -Dlua-pkgconf=luajit -Dlua-executable=luajit"
     fi
 elif [ "$lua_mode" = "luarocks" ]; then
