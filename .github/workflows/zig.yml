@@ -22,4 +22,4 @@ jobs:
         version: 0.13.0
 
     - name: Build
-      run: .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} ${{ matrix.debug_mode }}
+      run: sh .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} ${{ matrix.debug_mode }}
