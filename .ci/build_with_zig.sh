@@ -35,8 +35,20 @@ else
     echo "Invalid lua_mode: $lua_mode"; exit 1
 fi
 
+step="test install"
+if [ "$target" = "native"]; then
+    flags="$flags"
+elif echo "$target" | grep -q "linux"; then
+    flags="$flags -Dtarget=$target -fqemu"
+elif echo "$target" | grep -q "windows"; then
+    flags="$flags -Dtarget=$target -fwine"
+else
+    flags="$flags -Dtarget=$target"
+    step="install"
+fi
+
 echo "Building Debug with $flags"
-zig build -p build test $flags -Ddebug=true -Dtarget=$target
+zig build -p build $step $flags -Ddebug=true -Dtarget=$target
 
 echo "Building Release with $flags"
-zig build -p build test $flags -Ddebug=false -Dtarget=$target
+zig build -p build $step $flags -Ddebug=false -Dtarget=$target

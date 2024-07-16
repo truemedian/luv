@@ -24,7 +24,7 @@ jobs:
       run: sudo apt-get install -y lua5.4 luarocks luajit lua-cjson-dev liblua5.4-dev libluajit-5.1-dev libuv1-dev
 
     - name: Build
-      run: sh .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} x86_64-linux-gnu.2.17
+      run: sh .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} native-native-native
       
   build-cross:
     runs-on: ubuntu-latest
@@ -72,6 +72,11 @@ jobs:
         - x86-linux-musl
     steps:
     - uses: actions/checkout@v4
+
+    - uses: docker/setup-qemu-action@v1
+
+    - name: Install Wine and Darling
+      run: sudo apt-get install -y wine wine64
 
     - uses: mlugg/setup-zig@v1
       with:
