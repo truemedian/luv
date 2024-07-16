@@ -13,7 +13,7 @@ if [ "$lua_mode" = "system" ]; then
 
     if [ "$lua_engine" = "lua" ]; then
         # unnecessary for the CI runner, but here for completeness
-        flags="$flags -Dlua-pkgconf=lua -Dlua-executable=lua"
+        flags="$flags -Dlua-pkgconf=lua -Dlua-executable=lua5.4"
     elif [ "$lua_engine" = "luajit" ]; then
         flags="$flags -Dlua-pkgconf=luajit -Dlua-executable=luajit"
     fi

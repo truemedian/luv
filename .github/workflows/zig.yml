@@ -21,5 +21,8 @@ jobs:
       with:
         version: 0.13.0
 
+    - name: Install Dependencies
+      run: sudo apt-get install -y lua5.4 luarocks luajit liblua5.4-dev libluajit-5.1-dev libuv1-dev
+
     - name: Build
       run: sh .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} ${{ matrix.debug_mode }}
