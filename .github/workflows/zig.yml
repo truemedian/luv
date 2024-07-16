@@ -1,0 +1,25 @@
+name: Zig
+
+on: [push, pull_request]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        lua_engine: [Lua, LuaJIT]
+        lua_shared: [true, false, system, luarocks]
+        libuv_shared: [true, false, system]
+        debug_mode: [true, false]
+        exclude:
+        - lua_shared: luarocks
+          lua_engine: LuaJIT
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: mlugg/setup-zig@v1
+      with:
+        version: 0.13.0
+
+    - name: Build
+      run: .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} ${{ matrix.debug_mode }}
