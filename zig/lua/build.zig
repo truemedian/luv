@@ -7,7 +7,6 @@ const lua_version = find_ver: {
     const ver_end = std.mem.indexOfScalarPos(u8, zon, ver_start + 1, '"') orelse @panic("could not find zon version");
 
     const ver = std.SemanticVersion.parse(zon[ver_start + 1 .. ver_end]) catch @panic("could not parse zon version");
-
     break :find_ver ver;
 };
 
@@ -86,6 +85,7 @@ pub fn build(b: *std.Build) void {
             lib.root_module.addCMacro("_REENTRANT", "1");
         }
 
+        lib.root_module.sanitize_c = false;
         lib.addCSourceFiles(.{
             .root = lua_dep.path("src"),
             .files = base_sources,

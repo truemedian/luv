@@ -7,7 +7,6 @@ const libuv_version = find_ver: {
     const ver_end = std.mem.indexOfScalarPos(u8, zon, ver_start + 1, '"') orelse @panic("could not find zon version");
 
     const ver = std.SemanticVersion.parse(zon[ver_start + 1 .. ver_end]) catch @panic("could not parse zon version");
-
     break :find_ver ver;
 };
 
@@ -28,6 +27,8 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
         .strip = !debug,
         .pic = true,
+        
+        .unwind_tables = true,
     });
 
     const shared = b.addSharedLibrary(.{
@@ -38,6 +39,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .link_libc = true,
         .strip = !debug,
+
+        .unwind_tables = true,
     });
 
     b.installArtifact(static);
@@ -121,7 +124,7 @@ pub fn build(b: *std.Build) void {
                 });
 
                 lib.root_module.addCMacro("_GNU_SOURCE", "1");
-                lib.root_module.addCMacro("_POSIX_C_SOURCE=200112", "1");
+                lib.root_module.addCMacro("_POSIX_C_SOURCE", "200112");
 
                 lib.root_module.linkSystemLibrary("dl", .{ .needed = true });
 
@@ -271,8 +274,8 @@ const unix_sources: []const []const u8 = &.{
 
 const linux_sources: []const []const u8 = &.{
     "unix/proctitle.c",                "unix/linux.c",
-    "unix/procfs-exepath.c",           "unix/unix/random-getrandom.c",
-    "unix/unix/random-sysctl-linux.c",
+    "unix/procfs-exepath.c",           "unix/random-getrandom.c",
+    "unix/random-sysctl-linux.c",
 };
 
 const darwin_sources: []const []const u8 = &.{
