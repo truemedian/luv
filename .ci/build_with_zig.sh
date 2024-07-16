@@ -48,7 +48,7 @@ else
 fi
 
 echo "Building Debug with $flags"
-zig build -p build $step $flags -Ddebug=true -Dtarget=$target
+zig build -p build $step $flags -Ddebug=true
 
 echo "Building Release with $flags"
-zig build -p build $step $flags -Ddebug=false -Dtarget=$target
+zig build -p build $step $flags -Ddebug=false
