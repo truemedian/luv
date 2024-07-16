@@ -10,7 +10,6 @@ jobs:
         lua_engine: [Lua, LuaJIT]
         lua_shared: [shared, static, system, luarocks]
         libuv_shared: [shared, static, system]
-        debug_mode: [debug, release]
         exclude:
         - lua_shared: luarocks
           lua_engine: LuaJIT
@@ -25,4 +24,58 @@ jobs:
       run: sudo apt-get install -y lua5.4 luarocks luajit lua-cjson-dev liblua5.4-dev libluajit-5.1-dev libuv1-dev
 
     - name: Build
-      run: sh .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} ${{ matrix.debug_mode }}
+      run: sh .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} x86_64-linux-gnu.2.17
+      
+  build-cross:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lua_engine: [Lua, LuaJIT]
+        lua_shared: [shared, static]
+        libuv_shared: [shared, static]
+        target:
+        - aarch64-windows
+        - x86_64-windows
+        - x86-windows
+
+        - aarch64-macos
+        - x86_64-macos
+
+        - aarch64_be-linux-gnu.2.17
+        - aarch64-linux-gnu.2.17
+        - arm-linux-gnueabi.2.17
+        - arm-linux-gnueabihf.2.17
+        - armeb-linux-gnueabi.2.17
+        - armeb-linux-gnueabihf.2.17
+        - mips-linux-gnueabi.2.17
+        - mips-linux-gnueabihf.2.17
+        - mips64-linux-gnuabi64.2.17
+        - mips64el-linux-gnuabi64.2.17
+        - mipsel-linux-gnueabi.2.17
+        - mipsel-linux-gnueabihf.2.17
+        - powerpc-linux-gnueabi.2.17
+        - powerpc-linux-gnueabihf.2.17
+        - powerpc64-linux-gnu.2.17
+        - powerpc64le-linux-gnu.2.17
+        - x86_64-linux-gnu.2.17
+        - x86-linux-gnu.2.17
+
+        - aarch64_be-linux-musl
+        - aarch64-linux-musl
+        - arm-linux-musleabi
+        - arm-linux-musleabihf
+        - powerpc-linux-musl
+        - powerpc64-linux-musl
+        - powerpc64le-linux-musl
+        - x86_64-linux-musl
+        - x86-linux-musl
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: mlugg/setup-zig@v1
+      with:
+        version: 0.13.0
+
+    - name: Build
+      run: sh .ci/build_with_zig.sh ${{ matrix.lua_engine }} ${{ matrix.lua_shared }} ${{ matrix.libuv_shared }} ${{ matrix.target }}

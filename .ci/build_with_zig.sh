@@ -4,14 +4,16 @@ set -e
 lua_engine=$1
 lua_mode=$2
 libuv_mode=$3
-debug_mode=$4
+target=$4
 
-if [ "$debug_mode" = "debug" ]; then
-    flags="-Ddebug=true"
-elif [ "$debug_mode" = "release" ]; then
-    flags="-Ddebug=false"
+if [ "$libuv_mode" = "system" ]; then
+    flags="-fsys=libuv"
+elif [ "$libuv_mode" = "shared" ]; then
+    flags="-Dlibuv-shared=true"
+elif [ "$libuv_mode" = "static" ]; then
+    flags="-Dlibuv-shared=false"
 else
-    echo "Invalid debug_mode: $debug_mode"; exit 1
+    echo "Invalid libuv_mode: $lua_mode"; exit 1
 fi
 
 if [ "$lua_mode" = "system" ]; then
@@ -33,15 +35,8 @@ else
     echo "Invalid lua_mode: $lua_mode"; exit 1
 fi
 
-if [ "$libuv_mode" = "system" ]; then
-    flags="$flags -fsys=libuv"
-elif [ "$libuv_mode" = "shared" ]; then
-    flags="$flags -Dlibuv-shared=true"
-elif [ "$libuv_mode" = "static" ]; then
-    flags="$flags -Dlibuv-shared=false"
-else
-    echo "Invalid libuv_mode: $lua_mode"; exit 1
-fi
+echo "Building Debug with $flags"
+zig build -p build test $flags -Ddebug=true -Dtarget=$target
 
-echo "Building with $flags"
-zig build -p build test $flags
+echo "Building Release with $flags"
+zig build -p build test $flags -Ddebug=false -Dtarget=$target
