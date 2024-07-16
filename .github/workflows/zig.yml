@@ -8,9 +8,9 @@ jobs:
     strategy:
       matrix:
         lua_engine: [Lua, LuaJIT]
-        lua_shared: [true, false, system, luarocks]
-        libuv_shared: [true, false, system]
-        debug_mode: [true, false]
+        lua_shared: [shared, static, system, luarocks]
+        libuv_shared: [shared, static, system]
+        debug_mode: [debug, release]
         exclude:
         - lua_shared: luarocks
           lua_engine: LuaJIT

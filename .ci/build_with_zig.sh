@@ -6,7 +6,15 @@ lua_mode=$2
 libuv_mode=$3
 debug_mode=$4
 
-flags="-Ddebug=$debug_mode"
+flags=""
+
+if [ "$debug_mode" = "debug" ]; then
+    lua_engine="-Ddebug=true"
+elif [ "$debug_mode" = "release" ]; then
+    lua_engine="-Ddebug=false"
+else
+    echo "Invalid debug_mode: $debug_mode"; exit 1
+fi
 
 if [ "$lua_mode" = "system" ]; then
     flags="$flags -fsys=lua"
@@ -19,14 +27,22 @@ if [ "$lua_mode" = "system" ]; then
     fi
 elif [ "$lua_mode" = "luarocks" ]; then
     flags="$flags -fsys=luarocks"
-else # bundled
-    flags="$flags -Dlua-shared=$lua_mode -Dlua-engine=$lua_engine"
+elif [ "$lua_mode" = "shared" ]; then
+    flags="$flags -Dlua-shared=true -Dlua-engine=$lua_engine"
+elif [ "$lua_mode" = "static" ]; then
+    flags="$flags -Dlua-shared=false -Dlua-engine=$lua_engine"
+else
+    echo "Invalid lua_mode: $lua_mode"; exit 1
 fi
 
 if [ "$libuv_mode" = "system" ]; then
     flags="$flags -fsys=libuv"
-else # bundled
-    flags="$flags -Dlibuv-shared=$libuv_mode"
+elif [ "$libuv_mode" = "shared" ]; then
+    flags="$flags -Dlibuv-shared=true"
+elif [ "$libuv_mode" = "static" ]; then
+    flags="$flags -Dlibuv-shared=false"
+else
+    echo "Invalid libuv_mode: $lua_mode"; exit 1
 fi
 
 echo "Building with $flags"
