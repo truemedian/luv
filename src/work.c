@@ -287,6 +287,9 @@ static void luv_key_init_once(void)
   idx_vms = 0;
 }
 
+#if __has_attribute(destructor)
+__attribute__((destructor)) 
+#endif
 static void luv_work_cleanup(void)
 {
   unsigned int i;

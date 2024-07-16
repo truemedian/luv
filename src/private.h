@@ -131,4 +131,8 @@ static luv_release_vm release_vm_cb = NULL;
 #pragma clang diagnostic pop
 #endif
 
+#ifndef __has_attribute
+#define __has_attribute(x) 0
+#endif
+
 #endif
