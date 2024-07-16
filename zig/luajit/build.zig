@@ -86,6 +86,7 @@ pub fn build(b: *std.Build) void {
         .strip = !debug,
     });
 
+    minilua.root_module.sanitize_c = false;
     minilua.addCSourceFiles(.{
         .root = luajit_dep.path("src/host"),
         .files = minilua_sources,
@@ -110,6 +111,7 @@ pub fn build(b: *std.Build) void {
         .strip = !debug,
     });
 
+    buildvm.root_module.sanitize_c = false;
     buildvm.addCSourceFiles(.{
         .root = luajit_dep.path("src/host"),
         .files = buildvm_sources,
@@ -174,10 +176,10 @@ pub fn build(b: *std.Build) void {
         buildvm.root_module.addCMacro("LJ_ABI_SOFTFP", "0");
     }
 
-    if (target_os.tag != .ios and // LJ_TARGET_IOS
-        target_os.tag != .lv2 and // LJ_TARGET_CONSOLE
-        target_os.tag != .ps4 and // LJ_TARGET_CONSOLE
-        target_os.tag != .ps5) // LJ_TARGET_CONSOLE
+    if (target_os.tag == .ios or // LJ_TARGET_IOS
+        target_os.tag == .lv2 or // LJ_TARGET_CONSOLE
+        target_os.tag == .ps4 or // LJ_TARGET_CONSOLE
+        target_os.tag == .ps5) // LJ_TARGET_CONSOLE
     {
         dynasm_run.addArgs(&.{ "-D", "NO_UNWIND" });
         buildvm.root_module.addCMacro("LUAJIT_NO_UNWIND", "1");
@@ -381,6 +383,7 @@ pub fn build(b: *std.Build) void {
     inline for (.{ static, shared }) |lib| {
         lib.root_module.stack_protector = false;
         lib.root_module.addCMacro("LUAJIT_UNWIND_EXTERNAL", "1");
+        lib.root_module.linkSystemLibrary("unwind", .{ .needed = true });
 
         lib.addIncludePath(luajit_dep.path("src"));
         lib.addIncludePath(luajit_h.dirname());
@@ -402,17 +405,19 @@ pub fn build(b: *std.Build) void {
             lib.addAssemblyFile(lj_vm_s);
         }
 
+        lib.root_module.sanitize_c = false;
         lib.addCSourceFiles(.{
             .root = luajit_dep.path("src"),
             .files = base_sources,
-            .flags = &.{},
         });
 
         lib.addCSourceFiles(.{
             .root = luajit_dep.path("src"),
             .files = lib_sources,
-            .flags = &.{},
         });
+
+        // This is a hack that needs to be verified to work every time lj_err changes. Zig's libunwind matches the Apple libunwind
+        lib.addCSourceFile(.{ .file = luajit_dep.path("src/lj_err.c"), .flags = &.{"-DLUAJIT_OS=LUAJIT_OS_OSX"} });
 
         if (!disable_compat)
             lib.root_module.addCMacro("LUAJIT_ENABLE_LUA52COMPAT", "1");
@@ -426,6 +431,9 @@ pub fn build(b: *std.Build) void {
         if (disable_gc64)
             lib.root_module.addCMacro("LUAJIT_DISABLE_GC64", "1");
 
+        if (debug)
+            lib.root_module.addCMacro("LUA_USE_APICHECK", "1");
+
         lib.step.dependOn(&install_vmdef.step);
         lib.step.dependOn(&install_jit.step);
     }
@@ -435,6 +443,7 @@ pub fn build(b: *std.Build) void {
         .files = exe_sources,
     });
 
+    exe.rdynamic = true;
     exe.linkLibrary(static);
 }
 
@@ -457,16 +466,16 @@ const lib_sources: []const []const u8 = &.{
 };
 
 const base_sources: []const []const u8 = &.{
-    "lj_assert.c",   "lj_gc.c",        "lj_err.c",        "lj_char.c",      "lj_bc.c",       "lj_obj.c",
-    "lj_buf.c",      "lj_str.c",       "lj_tab.c",        "lj_func.c",      "lj_udata.c",    "lj_meta.c",
-    "lj_debug.c",    "lj_prng.c",      "lj_state.c",      "lj_dispatch.c",  "lj_vmevent.c",  "lj_vmmath.c",
-    "lj_strscan.c",  "lj_strfmt.c",    "lj_strfmt_num.c", "lj_serialize.c", "lj_api.c",      "lj_profile.c",
-    "lj_lex.c",      "lj_parse.c",     "lj_bcread.c",     "lj_bcwrite.c",   "lj_load.c",     "lj_ir.c",
-    "lj_opt_mem.c",  "lj_opt_fold.c",  "lj_opt_narrow.c", "lj_opt_dce.c",   "lj_opt_loop.c", "lj_opt_split.c",
-    "lj_opt_sink.c", "lj_mcode.c",     "lj_snap.c",       "lj_record.c",    "lj_crecord.c",  "lj_ffrecord.c",
-    "lj_asm.c",      "lj_trace.c",     "lj_gdbjit.c",     "lj_ctype.c",     "lj_cdata.c",    "lj_cconv.c",
-    "lj_ccall.c",    "lj_ccallback.c", "lj_carith.c",     "lj_clib.c",      "lj_cparse.c",   "lj_lib.c",
-    "lj_alloc.c",    "lib_aux.c",      "lib_init.c",
+    "lj_assert.c",    "lj_gc.c",         "lj_char.c",      "lj_bc.c",       "lj_obj.c",       "lj_buf.c",
+    "lj_str.c",       "lj_tab.c",        "lj_func.c",      "lj_udata.c",    "lj_meta.c",      "lj_debug.c",
+    "lj_prng.c",      "lj_state.c",      "lj_dispatch.c",  "lj_vmevent.c",  "lj_vmmath.c",    "lj_strscan.c",
+    "lj_strfmt.c",    "lj_strfmt_num.c", "lj_serialize.c", "lj_api.c",      "lj_profile.c",   "lj_lex.c",
+    "lj_parse.c",     "lj_bcread.c",     "lj_bcwrite.c",   "lj_load.c",     "lj_ir.c",        "lj_opt_mem.c",
+    "lj_opt_fold.c",  "lj_opt_narrow.c", "lj_opt_dce.c",   "lj_opt_loop.c", "lj_opt_split.c", "lj_opt_sink.c",
+    "lj_mcode.c",     "lj_snap.c",       "lj_record.c",    "lj_crecord.c",  "lj_ffrecord.c",  "lj_asm.c",
+    "lj_trace.c",     "lj_gdbjit.c",     "lj_ctype.c",     "lj_cdata.c",    "lj_cconv.c",     "lj_ccall.c",
+    "lj_ccallback.c", "lj_carith.c",     "lj_clib.c",      "lj_cparse.c",   "lj_lib.c",       "lj_alloc.c",
+    "lib_aux.c",      "lib_init.c",
 };
 
 const exe_sources: []const []const u8 = &.{"luajit.c"};
