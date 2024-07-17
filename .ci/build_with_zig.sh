@@ -36,7 +36,7 @@ else
 fi
 
 step="test install"
-if [ "$target" = "native"]; then
+if [ "$target" = "native" ]; then
     flags="$flags"
 else
     flags="$flags -Dtarget=$target"

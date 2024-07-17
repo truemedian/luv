@@ -101,11 +101,25 @@ pub fn build(b: *std.Build) void {
     generate_luajit_h.addFileArg(luajit_dep.path(".relver"));
     const luajit_h = generate_luajit_h.addOutputFileArg("luajit.h");
 
+    // buildvm needs to have the same pointer size as the target
+    var buildvm_target = b.graph.host;
+    if (buildvm_target.result.ptrBitWidth() != target.result.ptrBitWidth()) {
+        switch (buildvm_target.result.cpu.arch) {
+            .x86 => buildvm_target.query.cpu_arch = .x86_64,
+            .x86_64 => buildvm_target.query.cpu_arch = .x86,
+            else => std.debug.panic("cross-build with mismatched pointer sizes: {s}", .{@tagName(buildvm_target.result.cpu.arch)}),
+        }
+
+        buildvm_target = b.resolveTargetQuery(.{
+            .cpu_arch = buildvm_target.query.cpu_arch,
+        });
+    }
+
     // Build buildvm for the host to generate the target-specific headers
     const buildvm = b.addExecutable(.{
         .name = "buildvm",
 
-        .target = b.graph.host,
+        .target = buildvm_target,
         .optimize = optimize,
         .link_libc = true,
         .strip = !debug,
@@ -416,8 +430,12 @@ pub fn build(b: *std.Build) void {
             .files = lib_sources,
         });
 
-        // This is a hack that needs to be verified to work every time lj_err changes. Zig's libunwind matches the Apple libunwind
-        lib.addCSourceFile(.{ .file = luajit_dep.path("src/lj_err.c"), .flags = &.{"-DLUAJIT_OS=LUAJIT_OS_OSX"} });
+        if (target_os.tag == .windows) {
+            lib.addCSourceFile(.{ .file = luajit_dep.path("src/lj_err.c") });
+        } else {
+            // This is a hack that needs to be verified to work every time lj_err changes. Zig's libunwind matches the Apple libunwind
+            lib.addCSourceFile(.{ .file = luajit_dep.path("src/lj_err.c"), .flags = &.{"-DLUAJIT_OS=LUAJIT_OS_OSX"} });
+        }
 
         if (!disable_compat)
             lib.root_module.addCMacro("LUAJIT_ENABLE_LUA52COMPAT", "1");

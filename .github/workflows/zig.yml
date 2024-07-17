@@ -46,8 +46,6 @@ jobs:
         - aarch64-linux-gnu.2.17
         - arm-linux-gnueabi.2.17
         - arm-linux-gnueabihf.2.17
-        - armeb-linux-gnueabi.2.17
-        - armeb-linux-gnueabihf.2.17
         - mips-linux-gnueabi.2.17
         - mips-linux-gnueabihf.2.17
         - mips64-linux-gnuabi64.2.17
@@ -57,7 +55,6 @@ jobs:
         - powerpc-linux-gnueabi.2.17
         - powerpc-linux-gnueabihf.2.17
         - powerpc64-linux-gnu.2.17
-        - powerpc64le-linux-gnu.2.17
         - x86_64-linux-gnu.2.17
         - x86-linux-gnu.2.17
 
