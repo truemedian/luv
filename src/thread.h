@@ -22,38 +22,41 @@
 #define LUV_THREAD_MAXNUM_ARG 9
 
 typedef struct {
-  // support basic lua type LUA_TNIL, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING
-  // and support uv_handle_t userdata
   int type;
-  union
-  {
-    struct {
-      int isinteger;
-      union {
-        lua_Number n;
-        lua_Integer i;
-      } value;
-    } num;
+  union {
     int boolean;
+    struct {
+      union {
+        lua_Number number;
+        lua_Integer integer;
+      };
+      int isinteger;
+    } number;
     struct {
       const char* base;
       size_t len;
-    } str;
+      int ref;
+    } string;
     struct {
-      const void* data;
       size_t size;
-      const char* metaname;
-    } udata;
-  } val;
-  int ref[2];          // ref of string or userdata
-} luv_val_t;
+      const void* data;
+      int producer_ref; // this is our reference to the userdata, so the other side knows how to identify if it comes back
+      int consumer_ref; // if we got this userdata from the other side, this is its reference on the other side
+      const char* name;
+      int name_ref;
+      
+      // for more complex userdata
+      lua_CFunction constructor;
+    } userdata;
+  };
+} luv_thread_arg_t;
 
 typedef struct {
   int argc;
   int flags;          // control gc
 
-  luv_val_t argv[LUV_THREAD_MAXNUM_ARG];
-} luv_thread_arg_t;
+  luv_thread_arg_t argv[LUV_THREAD_MAXNUM_ARG];
+} luv_thread_args_t;
 
 //luajit miss LUA_OK
 #ifndef LUA_OK

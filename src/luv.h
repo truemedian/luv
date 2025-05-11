@@ -106,6 +106,8 @@ typedef struct {
   int          mode;        /* the mode used to run the loop (-1 if not running) */
   int          ht_ref;      /* bookkeeping: maintain table of luv_handle_t pointers,
                                to distinguish between internal and external handles */
+  int          ut_ref;      /* bookkeeping: associate userdata with thread, to avoid
+                               unnecessary or broken copies */
 
   void* extra;              /* extra data */
 } luv_ctx_t;

@@ -36,8 +36,8 @@ typedef struct {
   uv_work_t work;
   luv_work_ctx_t* ctx;
 
-  luv_thread_arg_t args;
-  luv_thread_arg_t rets;
+  luv_thread_args_t args;
+  luv_thread_args_t rets;
   int ref;            /* ref to luv_work_ctx_t, which create a new uv_work_t*/
 } luv_work_t;
 
@@ -202,7 +202,7 @@ static int luv_new_work(lua_State* L) {
   char* code;
   luv_work_ctx_t* ctx;
 
-  luv_thread_dumped(L, 1);
+  luv_thread_prepare_entrypoint(L, 1);
   len = lua_rawlen(L, -1);
   code = malloc(len);
   memcpy(code, lua_tostring(L, -1), len);

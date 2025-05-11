@@ -791,6 +791,13 @@ LUALIB_API luv_ctx_t* luv_context(lua_State* L) {
     // create table to contain internal handle
     lua_newtable(L);
     ctx->ht_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    // create table to contain userdata association
+    lua_newtable(L);
+    lua_newtable(L);
+    lua_pushstring(L, "k");
+    lua_setfield(L, -1, "__mode");
+    lua_setmetatable(L, -2);
+    ctx->ut_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   } else {
     ctx = (luv_ctx_t*)lua_touserdata(L, -1);
   }
