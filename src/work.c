@@ -24,21 +24,29 @@ typedef struct {
 } luv_work_vms_t;
 
 typedef struct {
-  lua_State* L;       /* vm in main */
-  char* code;         /* thread entry code */
-  size_t len;
+  // bytecode of the worker entrypoint
+  const char* code;
+  size_t code_len;
 
-  int after_work_cb;  /* ref, run in main ,call after work cb*/
-  luv_work_vms_t* vms; /* userdata owned by L, so parent thread can clean up old states */
+  // state that will be running the after work callback
+  lua_State* owner;
+  // reference to the callback for after work
+  int after_work_ref;
+
+  // userdata owned by owner so the parent can clean up old states
+  luv_work_vms_t* vms;
 } luv_work_ctx_t;
 
 typedef struct {
   uv_work_t work;
   luv_work_ctx_t* ctx;
 
+  // on entry used to pass data from main to worker, on exit used to pass
+  // data from worker to main
   luv_thread_args_t args;
-  luv_thread_args_t rets;
-  int ref;            /* ref to luv_work_ctx_t, which create a new uv_work_t*/
+
+  // reference to the luv_work_ctx_t userdata to keep it alive
+  int ref;
 } luv_work_t;
 
 static uv_once_t once_vmkey = UV_ONCE_INIT;
@@ -57,8 +65,9 @@ static luv_work_ctx_t* luv_check_work_ctx(lua_State* L, int index) {
 
 static int luv_work_ctx_gc(lua_State *L) {
   luv_work_ctx_t* ctx = luv_check_work_ctx(L, 1);
+
   free(ctx->code);
-  luaL_unref(L, LUA_REGISTRYINDEX, ctx->after_work_cb);
+  luaL_unref(L, LUA_REGISTRYINDEX, ctx->after_work_ref);
 
   return 0;
 }
@@ -125,11 +134,9 @@ static int luv_work_cb(lua_State* L) {
   return LUA_OK;
 }
 
-static lua_State* luv_work_acquire_vm(luv_work_vms_t* vms)
-{
+static lua_State* luv_work_acquire_vm(luv_work_vms_t* vms) {
   lua_State* L = uv_key_get(&tls_vmkey);
-  if (L == NULL)
-  {
+  if (L == NULL) {
     L = acquire_vm_cb();
     uv_key_set(&tls_vmkey, L);
     lua_pushboolean(L, 1);
@@ -143,8 +150,7 @@ static lua_State* luv_work_acquire_vm(luv_work_vms_t* vms)
   return L;
 }
 
-static int luv_work_cleanup(lua_State *L)
-{
+static int luv_work_cleanup(lua_State *L) {
   unsigned int i;
   luv_work_vms_t *vms = (luv_work_vms_t*)lua_touserdata(L, 1);
   
@@ -162,53 +168,53 @@ static int luv_work_cleanup(lua_State *L)
 }
 
 static void luv_work_cb_wrapper(uv_work_t* req) {
-  luv_work_t* work =  (luv_work_t*)req->data;
+  luv_work_t *work = (luv_work_t*)req->data;
   lua_State *L = luv_work_acquire_vm(work->ctx->vms);
-  luv_ctx_t* lctx = luv_context(L);
 
   // If exit is called on a thread in the thread pool, abort is called in
   // uv__threadpool_cleanup, so exit is not called in luv_cfpcall.
-  int i = lctx->thrd_cpcall(L, luv_work_cb, (void*)req, LUVF_CALLBACK_NOEXIT);
+  int i = luv_context(L)->thrd_cpcall(L, luv_work_cb, (void*)req, LUVF_CALLBACK_NOEXIT);
   if (i != LUA_OK) {
-    luv_thread_arg_clear(L, &work->rets, LUVF_THREAD_MODE_ASYNC|LUVF_THREAD_SIDE_CHILD);
-    luv_thread_arg_clear(L, &work->args, LUVF_THREAD_SIDE_CHILD);
+    luv_thread_arg_clear(L, &work->args, LUVF_THREAD_MODE_ASYNC);
   }
 }
 
 static void luv_after_work_cb(uv_work_t* req, int status) {
-  luv_work_t* work = (luv_work_t*)req->data;
-  luv_work_ctx_t* ctx = work->ctx;
-  lua_State* L = ctx->L;
-  luv_ctx_t *lctx = luv_context(L);
-  int i;
+  luv_work_t *work = (luv_work_t*)req->data;
+  luv_work_ctx_t *work_ctx = work->ctx;
+  lua_State *L = work_ctx->owner;
+  luv_ctx_t *ctx = luv_context(L);
 
   (void)status;
 
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ctx->after_work_cb);
-  i = luv_thread_arg_push(L, &work->rets, LUVF_THREAD_SIDE_MAIN);
-  lctx->cb_pcall(L, i, 0, 0);
+  lua_rawgeti(L, LUA_REGISTRYINDEX, work_ctx->after_work_ref);
+  int i = luv_thread_args_push(L, ctx, &work->args);
+  ctx->cb_pcall(L, i, 0, 0);
 
-  //ref down to ctx, up in luv_queue_work()
+  // remove our reference to the work context
   luaL_unref(L, LUA_REGISTRYINDEX, work->ref);
   work->ref = LUA_NOREF;
 
-  luv_thread_arg_clear(L, &work->args, LUVF_THREAD_SIDE_MAIN);
-  luv_thread_arg_clear(L, &work->rets, LUVF_THREAD_MODE_ASYNC|LUVF_THREAD_SIDE_MAIN);
+  luv_thread_arg_clear(L, &work->args, LUVF_THREAD_MODE_ASYNC);
   free(work);
 }
 
 static int luv_new_work(lua_State* L) {
-  size_t len;
-  char* code;
   luv_work_ctx_t* ctx;
 
+  luv_check_callable(L, 2);
+
   luv_thread_prepare_entrypoint(L, 1);
-  len = lua_rawlen(L, -1);
-  code = malloc(len);
-  memcpy(code, lua_tostring(L, -1), len);
+  const char* code = lua_tolstring(L, -1, &ctx->code_len);
+  ctx->code = malloc(ctx->code_len);
+  if (!ctx->code) {
+    luaL_error(L, "out of memory");
+  }
+
+  memcpy(ctx->code, code, ctx->code_len);
   lua_pop(L, 1);
 
-  luaL_checktype(L, 2, LUA_TFUNCTION);
+
 
   ctx = (luv_work_ctx_t*)lua_newuserdata(L, sizeof(*ctx));
   memset(ctx, 0, sizeof(*ctx));
@@ -217,13 +223,11 @@ static int luv_new_work(lua_State* L) {
   ctx->vms = (luv_work_vms_t*)lua_touserdata(L, -1);
   lua_pop(L, 1);
 
-  ctx->len = len;
-  ctx->code = code;
 
   lua_pushvalue(L, 2);
-  ctx->after_work_cb = luaL_ref(L, LUA_REGISTRYINDEX);
-
-  ctx->L = luv_state(L);
+  ctx->after_work_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  ctx->owner = L;
+  
   luaL_getmetatable(L, "luv_work_ctx");
   lua_setmetatable(L, -2);
 

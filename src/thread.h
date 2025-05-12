@@ -40,8 +40,8 @@ typedef struct {
     struct {
       size_t size;
       const void* data;
-      int producer_ref; // this is our reference to the userdata, so the other side knows how to identify if it comes back
-      int consumer_ref; // if we got this userdata from the other side, this is its reference on the other side
+      int producer_ref; 
+      int consumer_ref;
       const char* name;
       int name_ref;
       
@@ -52,6 +52,9 @@ typedef struct {
 } luv_thread_arg_t;
 
 typedef struct {
+  lua_State *producer;
+  lua_State *consumer;
+
   int argc;
   int flags;          // control gc
 

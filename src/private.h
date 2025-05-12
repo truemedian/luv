@@ -117,12 +117,11 @@ static lua_State* luv_thread_acquire_vm(void);
 static int luv_parse_signal(lua_State* L, int slot);
 
 /* From work.c */
-static int luv_thread_prepare_entrypoint(lua_State* L, int idx);
-static const char* luv_find_metatable_name(lua_State *L, int idx);
-static int luv_thread_arg_set(lua_State* L, luv_thread_args_t* args, int idx, int top, int flags);
-static int luv_thread_arg_push(lua_State* L, luv_thread_args_t* args, int flags);
-static void luv_thread_arg_clear(lua_State* L, luv_thread_args_t* args, int flags);
-static int luv_thread_arg_error(lua_State* L);
+static void luv_thread_prepare_entrypoint(lua_State* L, int idx);
+static void luv_thread_args_check(lua_State* L, int idx, int top);
+static void luv_thread_args_prepare(lua_State* L, luv_ctx_t* ctx, luv_thread_args_t* args, int idx, int top, int flags);
+static int luv_thread_args_push(lua_State* L, luv_ctx_t* ctx, luv_thread_args_t* args);
+static void luv_thread_args_cleanup(lua_State* L, luv_thread_args_t* args, int flags);
 
 static luv_acquire_vm acquire_vm_cb = NULL;
 static luv_release_vm release_vm_cb = NULL;

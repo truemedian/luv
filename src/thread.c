@@ -18,23 +18,23 @@
 
 typedef struct {
   uv_thread_t handle;
-  char* code;
-  int len;
-  int argc;
-  luv_thread_args_t args;
 
-  // private fields, avoid thread be released before it done
-  lua_State *L;
-  int ref;
-  uv_async_t notify;
-} luv_thread_t;
-
-typedef struct {
+  // bytecode of the thread entrypoint
   const char* code;
-  size_t len;
+  size_t code_len;
 
+  // the lua state that created this luv_thread_t
+  lua_State *owner;
 
-} luv_thread_options_t;
+  // used to wait for thread initialization
+  uv_sem_t sem;
+
+  // used to wait for thread exit to ensure the thread exits before the main thread
+  uv_async_t exit_notify;
+  int thread_ref;
+
+  luv_thread_args_t *args;
+} luv_thread_t;
 
 static lua_State* luv_thread_acquire_vm(void) {
   lua_State* L = luaL_newstate();
@@ -60,10 +60,13 @@ static void luv_thread_release_vm(lua_State* L) {
 }
 
 // Ensure that the arguments are valid for passing to a thread.
-static int luv_thread_args_check(lua_State *L, int idx, int top) {
+static void luv_thread_args_check(lua_State *L, int idx, int top) {
   if (top - idx > LUV_THREAD_MAXNUM_ARG) {
     luaL_error(L, "too many thread arguments, max %d", LUV_THREAD_MAXNUM_ARG);
   }
+
+  idx = lua_absindex(L, idx);
+  top = lua_absindex(L, top);
 
   for (int i = idx; i <= top; i++) {
     switch (lua_type(L, i)) {
@@ -118,12 +121,13 @@ static int luv_thread_args_check(lua_State *L, int idx, int top) {
 
 // initialize arguments to pass to a different thread
 static void luv_thread_args_prepare(lua_State *L, luv_ctx_t *ctx, luv_thread_args_t* args, int idx, int top, int flags) {
+  args->producer = L;
   args->flags = flags;
 
   // async requires us to copy any persistent data because we don't know when it will be used.
   int is_async = LUVF_THREAD_ASYNC(flags);
 
-  for (int i = idx; i <= top; i++) {
+  for (unsigned int i = idx; i <= top; i++) {
     luv_thread_arg_t *arg = &args->argv[i - idx];
     arg->type = lua_type(L, i);
     switch (arg->type) {
@@ -187,14 +191,27 @@ static void luv_thread_args_prepare(lua_State *L, luv_ctx_t *ctx, luv_thread_arg
 
         // store the name of the userdata
         lua_getfield(L, -1, "__name");
-        arg->userdata.name = lua_tostring(L, -1);
-        arg->userdata.name_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        if (is_async) {
+          size_t len;
+          const char* name = lua_tolstring(L, -1, &len);
+          
+          arg->userdata.name = malloc(len);
+          if (!arg->userdata.name) {
+            luaL_error(L, "out of memory");
+          }
+
+          memcpy((void*)arg->userdata.name, (const void*)name, len);
+        } else {
+          arg->userdata.name = lua_tostring(L, -1);
+          arg->userdata.name_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        }
 
         // if we know the userdata already exists on the other side, tell the other side where to find it
         lua_rawgeti(L, LUA_REGISTRYINDEX, ctx->ut_ref);
-        lua_rawgetp(L, -1, arg->userdata.data);
-        if (!lua_isnil(L, -1)) {
-          arg->userdata.consumer_ref = (int)lua_tointeger(L, -1);
+        if (lua_rawgetp(L, -1, args->consumer) == LUA_TTABLE) {
+          if (lua_rawgetp(L, -1, arg->userdata.data) == LUA_TNUMBER) {
+            arg->userdata.consumer_ref = (int)lua_tointeger(L, -1);
+          }
         }
 
         lua_pop(L, 2); // pop ut_ref table and reference
@@ -207,9 +224,7 @@ static void luv_thread_args_prepare(lua_State *L, luv_ctx_t *ctx, luv_thread_arg
 }
 
 static int luv_thread_args_push(lua_State* L, luv_ctx_t* ctx, luv_thread_args_t* args) {
-  int i = 0;
-
-  while (i < args->argc) {
+  for (unsigned int i = 0; i < args->argc; i++) {
     luv_thread_arg_t* arg = &args->argv[i];
     switch (arg->type) {
     case LUA_TNIL:
@@ -229,7 +244,7 @@ static int luv_thread_args_push(lua_State* L, luv_ctx_t* ctx, luv_thread_args_t*
       lua_pushlstring(L, arg->string.base, arg->string.len);
       break;
     case LUA_TLIGHTUSERDATA:
-      lua_pushlightuserdata(L, arg->userdata.data);
+      lua_pushlightuserdata(L, (void*)arg->userdata.data);
       break;
     case LUA_TUSERDATA:
       // if we know the userdata already exists here, we can just push it
@@ -244,7 +259,7 @@ static int luv_thread_args_push(lua_State* L, luv_ctx_t* ctx, luv_thread_args_t*
 
       if (arg->userdata.constructor) {
         lua_pushcfunction(L, arg->userdata.constructor);
-        lua_pushlightuserdata(L, arg->userdata.data);
+        lua_pushlightuserdata(L, (void*)arg->userdata.data);
         lua_pushinteger(L, (lua_Integer)arg->userdata.size);
         lua_pushstring(L, arg->userdata.name);
         lua_call(L, 3, 1);
@@ -268,20 +283,30 @@ static int luv_thread_args_push(lua_State* L, luv_ctx_t* ctx, luv_thread_args_t*
       }
 
       lua_rawgeti(L, LUA_REGISTRYINDEX, ctx->ut_ref);
+      if (lua_rawgetp(L, -1, args->producer) != LUA_TTABLE) {
+        lua_pop(L, 1);
+        
+        lua_newtable(L);
+        lua_getfield(L, -2, "mt");
+        lua_setmetatable(L, -2);
+
+        lua_pushvalue(L, -1);
+        lua_rawsetp(L, -2, args->producer);
+      }
+
       lua_pushinteger(L, arg->userdata.producer_ref);
       lua_rawsetp(L, -2, lua_touserdata(L, -3));
-      lua_pop(L, 1); // pop ut_ref table
+      lua_pop(L, 2); // pop ut_ref table and producer table
 
       break;
     default:
       luaL_error(L, "thread argument not supported");
     }
-    i++;
   }
   return args->argc;
 }
 
-static int luv_thread_args_cleanup(lua_State* L, luv_thread_args_t* args, int flags) {
+static void luv_thread_args_cleanup(lua_State* L, luv_thread_args_t* args, int flags) {
   int is_async = LUVF_THREAD_ASYNC(flags);
 
   for (int i = 0; i < args->argc; i++) {
@@ -293,181 +318,18 @@ static int luv_thread_args_cleanup(lua_State* L, luv_thread_args_t* args, int fl
       }
       break;
     case LUA_TUSERDATA:
-      if (arg->userdata.producer_ref != LUA_NOREF) {
-        luaL_unref(L, LUA_REGISTRYINDEX, arg->userdata.producer_ref);
-        arg->userdata.producer_ref = LUA_NOREF;
+      if (is_async) {
+        free((void*)arg->userdata.name);
+      } else {
+        luaL_unref(L, LUA_REGISTRYINDEX, arg->userdata.name_ref);
+        arg->userdata.name_ref = LUA_NOREF;
+        arg->userdata.name = NULL;
       }
       break;
     default:
       break;
     }
   }
-}
-
-static int luv_thread_arg_set(lua_State* L, luv_thread_args_t* args, int idx, int top, int flags) {
-  int i;
-  int side = LUVF_THREAD_SIDE(flags);
-  int async = LUVF_THREAD_ASYNC(flags);
-
-  idx = idx > 0 ? idx : 1;
-  i = idx;
-  args->flags = flags;
-  while (i <= top && i < LUV_THREAD_MAXNUM_ARG + idx)
-  {
-    luv_thread_arg_t *arg = args->argv + (i - idx);
-    arg->type = lua_type(L, i);
-    arg->ref[0] = arg->ref[1] = LUA_NOREF;
-    switch (arg->type)
-    {
-    case LUA_TNIL:
-      break;
-    case LUA_TBOOLEAN:
-      arg->val.boolean = lua_toboolean(L, i);
-      break;
-    case LUA_TNUMBER:
-      arg->val.num.isinteger = lua_isinteger(L, i);
-      if (arg->val.num.isinteger) {
-        arg->val.num.value.i = lua_tointeger(L, i);
-      } else {
-        arg->val.num.value.n = lua_tonumber(L, i);
-      }
-      break;
-    case LUA_TSTRING:
-      if (async)
-      {
-        const char* p = lua_tolstring(L, i, &arg->val.str.len);
-        arg->val.str.base = malloc(arg->val.str.len);
-        memcpy((void*)arg->val.str.base, p, arg->val.str.len);
-      } else {
-        arg->val.str.base = lua_tolstring(L, i, &arg->val.str.len);
-        lua_pushvalue(L, i);
-        arg->ref[side] = luaL_ref(L, LUA_REGISTRYINDEX);
-      }
-      break;
-    case LUA_TUSERDATA:
-      arg->val.udata.data = lua_topointer(L, i);
-      arg->val.udata.size = lua_rawlen(L, i);
-      arg->val.udata.metaname = luv_find_metatable_name(L, i);
-
-      if (arg->val.udata.size) {
-        lua_pushvalue(L, i);
-        arg->ref[side] = luaL_ref(L, LUA_REGISTRYINDEX);
-      }
-      break;
-    default:
-      args->argc = i - idx;
-      lua_pushinteger(L, arg->type);
-      lua_pushinteger(L, i - idx + 1);
-      return -1;
-    }
-    i++;
-  }
-  args->argc = i - idx;
-  return args->argc;
-}
-
-static void luv_thread_arg_clear(lua_State* L, luv_thread_args_t* args, int flags) {
-  int i;
-  int side = LUVF_THREAD_SIDE(flags);
-  int set = LUVF_THREAD_SIDE(args->flags);
-  int async = LUVF_THREAD_ASYNC(args->flags);
-
-  if (args->argc == 0)
-    return;
-
-  for (i = 0; i < args->argc; i++) {
-    luv_thread_arg_t* arg = args->argv + i;
-    switch (arg->type) {
-    case LUA_TSTRING:
-      if (arg->ref[side] != LUA_NOREF)
-      {
-        luaL_unref(L, LUA_REGISTRYINDEX, arg->ref[side]);
-        arg->ref[side] = LUA_NOREF;
-      } else {
-        if(async && set!=side)
-        {
-          free((void*)arg->val.str.base);
-          arg->val.str.base = NULL;
-          arg->val.str.len = 0;
-        }
-      }
-      break;
-    case LUA_TUSERDATA:
-      if (arg->ref[side]!=LUA_NOREF)
-      {
-        if (side != set)
-        {
-          // avoid custom gc
-          lua_rawgeti(L, LUA_REGISTRYINDEX, arg->ref[side]);
-          lua_pushnil(L);
-          lua_setmetatable(L, -2);
-          lua_pop(L, -1);
-        }
-        luaL_unref(L, LUA_REGISTRYINDEX, arg->ref[side]);
-        arg->ref[side] = LUA_NOREF;
-      }
-      break;
-    default:
-      break;
-    }
-  }
-}
-
-// called only in thread
-static int luv_thread_arg_push(lua_State* L, luv_thread_args_t* args, int flags) {
-  int i = 0;
-  int side = LUVF_THREAD_SIDE(flags);
-
-  while (i < args->argc) {
-    luv_thread_arg_t* arg = args->argv + i;
-    switch (arg->type) {
-    case LUA_TNIL:
-      lua_pushnil(L);
-      break;
-    case LUA_TBOOLEAN:
-      lua_pushboolean(L, arg->val.boolean);
-      break;
-    case LUA_TNUMBER:
-      if (arg->val.num.isinteger) {
-        lua_pushinteger(L, arg->val.num.value.i);
-      } else {
-        lua_pushnumber(L, arg->val.num.value.n);
-      }
-      break;
-    case LUA_TSTRING:
-      lua_pushlstring(L, arg->val.str.base, arg->val.str.len);
-      break;
-    case LUA_TUSERDATA:
-      if (arg->val.udata.size)
-      {
-        char *p = lua_newuserdata(L, arg->val.udata.size);
-        memcpy(p, arg->val.udata.data, arg->val.udata.size);
-        if (arg->val.udata.metaname)
-        {
-          luaL_getmetatable(L, arg->val.udata.metaname);
-          lua_setmetatable(L, -2);
-        }
-        lua_pushvalue(L, -1);
-        arg->ref[side] = luaL_ref(L, LUA_REGISTRYINDEX);
-      }else{
-        lua_pushlightuserdata(L, (void*)arg->val.udata.data);
-      }
-      break;
-    default:
-      fprintf(stderr, "Error: thread arg not support type %s at %d",
-        lua_typename(L, arg->type), i + 1);
-    }
-    i++;
-  };
-  return i;
-}
-
-static int luv_thread_arg_error(lua_State *L) {
-  int type = lua_tointeger(L, -2);
-  int pos = lua_tointeger(L, -1);
-  lua_pop(L, 2);
-  return luaL_error(L, "Error: thread arg not support type '%s' at %d",
-    lua_typename(L, type), pos);
 }
 
 static int luv_write_buffer(lua_State *L, const void *b, size_t size, void *ud) {
@@ -502,13 +364,6 @@ static luv_thread_t* luv_check_thread(lua_State* L, int index) {
   return thread;
 }
 
-static int luv_thread_gc(lua_State* L) {
-  luv_thread_t* tid = luv_check_thread(L, 1);
-  free(tid->code);
-  luv_thread_arg_clear(L, &tid->args, LUVF_THREAD_SIDE_MAIN);
-  return 0;
-}
-
 static int luv_thread_tostring(lua_State* L) {
   luv_thread_t* thd = luv_check_thread(L, 1);
   lua_pushfstring(L, "uv_thread_t: %p", (void*)thd->handle);
@@ -516,30 +371,33 @@ static int luv_thread_tostring(lua_State* L) {
 }
 
 static void luv_thread_cb(void* varg) {
-  //acquire vm and get top
-  luv_thread_t* thd = (luv_thread_t*)varg;
+  luv_thread_t* thrd = (luv_thread_t*)varg;
+
+  // acquire a lua state for the thread
   lua_State* L = acquire_vm_cb();
   luv_ctx_t *ctx = luv_context(L);
 
   lua_pushboolean(L, 1);
   lua_setglobal(L, "_THREAD");
 
-  //push lua function, thread entry
-  if (luaL_loadbuffer(L, thd->code, thd->len, "=thread") == 0) {
-    //push parameter for real thread function
-    int i = luv_thread_arg_push(L, &thd->args, LUVF_THREAD_SIDE_CHILD);
+  // push lua function for thread entry
+  if (luaL_loadbuffer(L, thrd->code, thrd->code_len, "=thread") == 0) {
+    // push parameters given to thread
+    int i = luv_thread_args_push(L, ctx, thrd->args);
+
+    // notify the main thread that we're done initializing and will not access args anymore.
+    uv_sem_post(&thrd->sem);
 
     ctx->thrd_pcall(L, i, 0, 0);
-    luv_thread_arg_clear(L, &thd->args, LUVF_THREAD_SIDE_CHILD);
   } else {
     fprintf(stderr, "Uncaught Error in thread: %s\n", lua_tostring(L, -1));
-    //pop errmsg
     lua_pop(L, 1);
   }
 
-  // Notify the thread exit callback on the main thread.
-  uv_async_send(&thd->notify);
   release_vm_cb(L);
+
+  // Notify the thread exit callback on the main thread.
+  uv_async_send(&thrd->exit_notify);
 }
 
 static void luv_thread_notify_close_cb(uv_handle_t *handle) {
@@ -547,9 +405,9 @@ static void luv_thread_notify_close_cb(uv_handle_t *handle) {
   if (thread->handle != 0)
     uv_thread_join(&thread->handle);
 
-  luaL_unref(thread->L, LUA_REGISTRYINDEX, thread->ref);
-  thread->ref = LUA_NOREF;
-  thread->L = NULL;
+  luaL_unref(thread->owner, LUA_REGISTRYINDEX, thread->thread_ref);
+  thread->thread_ref = LUA_NOREF;
+  thread->owner = NULL;
 }
 
 static void luv_thread_exit_cb(uv_async_t* handle) {
@@ -558,18 +416,16 @@ static void luv_thread_exit_cb(uv_async_t* handle) {
 
 static int luv_new_thread(lua_State* L) {
   int ret;
-  size_t len;
-  char* code;
+  luv_thread_args_t args;
   luv_thread_t* thread;
-  int cbidx = 1;
   luv_ctx_t* ctx = luv_context(L);
-  uv_sem_t sem;
-
+  
+  int callback_idx = 1;
 #if LUV_UV_VERSION_GEQ(1, 26, 0)
   uv_thread_options_t options;
   options.flags = UV_THREAD_NO_FLAGS;
   if (lua_istable(L, 1)) {
-    cbidx++;
+    callback_idx++;
 
     lua_getfield(L, 1, "stack_size");
     if (lua_isnumber(L, -1)) {
@@ -584,45 +440,46 @@ static int luv_new_thread(lua_State* L) {
 
   int top = lua_gettop(L);
 
-  uv_sem_init(&sem, 0);
-
-  luv_thread_prepare_entrypoint(L, cbidx);
-  code = lua_tolstring(L, -1, &len);
+  // ensure we can handle all of the thread arguments before we do anything.
+  luv_thread_args_check(L, callback_idx + 1, top);
 
   thread = (luv_thread_t*)lua_newuserdata(L, sizeof(*thread));
-  memset(thread, 0, sizeof(*thread));
   luaL_getmetatable(L, "uv_thread");
   lua_setmetatable(L, -2);
 
-  thread->len = len;
-  thread->code = code;
-  lua_remove(L, -2);
-  //clear in luv_thread_gc or in child threads
-  thread->argc = luv_thread_arg_set(L, &thread->args, cbidx+1, lua_gettop(L) - 1, LUVF_THREAD_SIDE_MAIN);
-  if (thread->argc < 0) {
-    return luv_thread_arg_error(L);
-  }
-  thread->len = len;
+  luv_thread_prepare_entrypoint(L, callback_idx);
+  thread->code = lua_tolstring(L, -1, &thread->code_len);
 
-  thread->notify.data = thread;
-  thread->ref = LUA_NOREF;
-  thread->L = L;
-  ret = uv_async_init(ctx->loop, &thread->notify, luv_thread_exit_cb);
+  luv_thread_args_prepare(L, ctx, &args, callback_idx + 1, top, 0);
+  thread->args = &args;
+
+  thread->exit_notify.data = thread;
+  thread->owner = L;
+
+  thread->thread_ref = LUA_NOREF;
+  ret = uv_async_init(ctx->loop, &thread->exit_notify, luv_thread_exit_cb);
   if (ret < 0)
     return luv_error(L, ret);
 
   lua_pushvalue(L, -1);
-  thread->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  thread->thread_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
+  thread->handle = 0;
 #if LUV_UV_VERSION_GEQ(1, 26, 0)
   ret = uv_thread_create_ex(&thread->handle, &options, luv_thread_cb, thread);
 #else
   ret = uv_thread_create(&thread->handle, luv_thread_cb, thread);
 #endif
   if (ret < 0) {
-    uv_close((uv_handle_t*)&thread->notify, luv_thread_notify_close_cb);
+    uv_close((uv_handle_t*)&thread->exit_notify, luv_thread_notify_close_cb);
     return luv_error(L, ret);
   }
+
+  uv_sem_wait(&thread->sem);
+  luv_thread_args_cleanup(L, &args, 0);
+
+  thread->code = NULL;
+  thread->code_len = 0;
 
   return 1;
 }
@@ -808,8 +665,6 @@ static void luv_thread_init(lua_State* L) {
   lua_setfield(L, -2, "__tostring");
   lua_pushcfunction(L, luv_thread_equal);
   lua_setfield(L, -2, "__eq");
-  lua_pushcfunction(L, luv_thread_gc);
-  lua_setfield(L, -2, "__gc");
   lua_newtable(L);
   luaL_setfuncs(L, luv_thread_methods, 0);
   lua_setfield(L, -2, "__index");
