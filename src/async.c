@@ -21,10 +21,10 @@ typedef struct {
   luv_thread_args_t args;
 } luv_async_t;
 
-static uv_async_t* luv_check_async(lua_State* L, int index) {
-  uv_async_t* handle = (uv_async_t*)luv_checkudata(L, index, "uv_async");
-  luaL_argcheck(L, handle->type == UV_ASYNC && handle->data, index, "Expected uv_async_t");
-  return handle;
+static luv_async_t* luv_check_async(lua_State* L, int index) {
+  luv_async_t* async = (luv_async_t*)luv_checkudata(L, index, "uv_async");
+  luaL_argcheck(L, async->handle.type == UV_ASYNC && async->handle.data, index, "Expected uv_async_t");
+  return async;
 }
 
 static void luv_async_cb(uv_async_t* handle) {
@@ -35,7 +35,7 @@ static void luv_async_cb(uv_async_t* handle) {
   lua_State* L = ctx->L;
   int n = luv_thread_args_push(L, ctx, &async->args);
   luv_call_callback(L, data, LUV_ASYNC, n);
-  luv_thread_args_cleanup(L, &async->args, LUVF_THREAD_MODE_ASYNC);
+  luv_thread_args_cleanup(L, &async->args);
 }
 
 static int luv_new_async(lua_State* L) {
@@ -58,13 +58,12 @@ static int luv_new_async(lua_State* L) {
 }
 
 static int luv_async_send(lua_State* L) {
-  uv_async_t* handle = luv_check_async(L, 1);
-  luv_handle_t *data = (luv_handle_t*)handle->data;
-  luv_thread_args_t* arg = (luv_thread_args_t *)data->extra;
+  luv_async_t *async = luv_check_async(L, 1);
+  luv_handle_t *data = (luv_handle_t*)async->handle.data;
   
   int top = lua_gettop(L);
   luv_thread_args_check(L, 2, top);
-  luv_thread_args_prepare(L, data->ctx, arg, 2, top, LUVF_THREAD_MODE_ASYNC);
-  int ret = uv_async_send(handle);
+  luv_thread_args_prepare(L, data->ctx, &async->args, 2, top, LUVF_THREAD_MODE_ASYNC);
+  int ret = uv_async_send(&async->handle);
   return luv_result(L, ret);
 }

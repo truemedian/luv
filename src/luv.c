@@ -642,6 +642,8 @@ static void luv_handle_init(lua_State* L) {
     lua_setfield(L, -2, "__tostring");         \
     lua_pushcfunction(L, luv_handle_gc);       \
     lua_setfield(L, -2, "__gc");               \
+    lua_pushboolean(L, 1);                     \
+    lua_setfield(L, -2, "__thread");           \
     luaL_newlib(L, luv_##lc##_methods);        \
     luaL_setfuncs(L, luv_handle_methods, 0);   \
     lua_setfield(L, -2, "__index");            \
@@ -795,7 +797,7 @@ LUALIB_API luv_ctx_t* luv_context(lua_State* L) {
     lua_newtable(L);
     lua_newtable(L);
     lua_pushstring(L, "k");
-    lua_setfield(L, -1, "__mode");
+    lua_setfield(L, -2, "__mode");
     lua_setfield(L, -2, "mt");
     ctx->ut_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   } else {

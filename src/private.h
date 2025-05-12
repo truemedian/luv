@@ -2,6 +2,7 @@
 #define LUV_PRIVATE_H
 
 #include <lua.h>
+#include <stdatomic.h>
 #if (LUA_VERSION_NUM < 503)
 #include "compat-5.3.h"
 #endif
@@ -120,11 +121,16 @@ static int luv_parse_signal(lua_State* L, int slot);
 static void luv_thread_prepare_entrypoint(lua_State* L, int idx);
 static void luv_thread_args_check(lua_State* L, int idx, int top);
 static void luv_thread_args_prepare(lua_State* L, luv_ctx_t* ctx, luv_thread_args_t* args, int idx, int top, int flags);
-static int luv_thread_args_push(lua_State* L, luv_ctx_t* ctx, luv_thread_args_t* args);
-static void luv_thread_args_cleanup(lua_State* L, luv_thread_args_t* args, int flags);
+static int luv_thread_args_push(lua_State* L, luv_ctx_t* ctx, const luv_thread_args_t* args);
+static void luv_thread_args_cleanup(lua_State* L, luv_thread_args_t* args);
 
 static luv_acquire_vm acquire_vm_cb = NULL;
 static luv_release_vm release_vm_cb = NULL;
+
+#define LUV_REFCOUNT_FIELDS _Atomic unsigned int refcount
+#define LUV_REFCOUNT_INIT(o) o->refcount = 1
+#define LUV_REFCOUNT_UP(o) __atomic_fetch_add(&(o)->refcount, 1)
+#define LUV_REFCOUNT_DOWN(o) __atomic_fetch_sub(&(o)->refcount, 1)
 
 #if defined(__clang__)
 #pragma clang diagnostic pop

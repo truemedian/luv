@@ -93,7 +93,7 @@ return require('lib/tap')(function (test)
       assert(n==9)
       args[1]:close()
     end))
-    for i=2, 10 do
+    for i=2, 9 do
       args[i] = i
     end
     local unpack = unpack or table.unpack
@@ -102,7 +102,7 @@ return require('lib/tap')(function (test)
       assert(#arg == 9)
       arg[1]:send(#arg)
     end, unpack(args)):join()
-    assert(#args==10)
+    assert(#args==9)
   end)
 
   test("test avoid thread be released before it done", function(print, p, expect, uv)
