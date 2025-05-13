@@ -23,6 +23,9 @@
 
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_fs_poll_methods[];
+LUV_LIBAPI luaL_Reg luv_fs_poll_functions[];
+
 /* ensure the userdata at the given index is a uv_fs_poll and return a pointer to it */
 LUV_LIBAPI uv_fs_poll_t *luv_check_fs_poll(lua_State *L, int index);
 

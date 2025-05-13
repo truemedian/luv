@@ -27,6 +27,57 @@
 #include "luv.h"
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_handle_methods[] = {
+  {"close", luv_close},
+  {"is_active", luv_is_active},
+  {"is_closing", luv_is_closing},
+  {"ref", luv_ref},
+  {"unref", luv_unref},
+  {"has_ref", luv_has_ref},
+  {"send_buffer_size", luv_send_buffer_size},
+  {"recv_buffer_size", luv_recv_buffer_size},
+  {"fileno", luv_fileno},
+  {"get_type", luv_handle_get_type},
+  {NULL, NULL},
+};
+
+LUV_LIBAPI luaL_Reg luv_handle_functions[] = {
+  {"close", luv_close},
+  {"is_active", luv_is_active},
+  {"is_closing", luv_is_closing},
+  {"ref", luv_ref},
+  {"unref", luv_unref},
+  {"has_ref", luv_has_ref},
+  {"send_buffer_size", luv_send_buffer_size},
+  {"recv_buffer_size", luv_recv_buffer_size},
+  {"fileno", luv_fileno},
+  {"handle_get_type", luv_handle_get_type},
+  {NULL, NULL},
+};
+
+/* provides us an address which we guarantee is unique to us to mark handle metatables */
+static char handle_key;
+
+LUV_LIBAPI int luv_handle_metatable(lua_State *L, const char *name, const luaL_Reg *methods) {
+  luaL_newmetatable(L, name);
+
+  lua_pushboolean(L, 1);
+  lua_rawsetp(L, -2, &handle_key);
+
+  lua_pushstring(L, name);
+  lua_setfield(L, -2, "__name");
+
+  lua_pushcfunction(L, luv_handle__tostring);
+  lua_setfield(L, -2, "__tostring");
+
+  lua_pushcfunction(L, luv_handle__gc);
+  lua_setfield(L, -2, "__gc");
+
+  luaL_newlib(L, luv_handle_methods);
+  luaL_setfuncs(L, methods, 0);
+  lua_setfield(L, -2, "__index");
+}
+
 LUV_LIBAPI luv_handle_t *luv_new_handle(
   lua_State *const L,
   const uv_handle_type type,
@@ -141,13 +192,12 @@ LUV_LIBAPI luv_handle_t *luv_check_handle(lua_State *const L, const int index) {
     return NULL;
   }
 
-  lua_getfield(L, LUA_REGISTRYINDEX, "uv_handle");
-  if (lua_getmetatable(L, index < 0 ? index - 1 : index) == 0) {
+  if (lua_getmetatable(L, index) == 0) {
     luaL_argerror(L, index, "expected uv_handle userdata");
     return NULL;
   }
 
-  lua_rawget(L, -2);
+  lua_rawgetp(L, -1, &handle_key);
   if (lua_toboolean(L, -1) == 0) {
     luaL_argerror(L, index, "expected uv_handle userdata");
     return NULL;
@@ -158,7 +208,7 @@ LUV_LIBAPI luv_handle_t *luv_check_handle(lua_State *const L, const int index) {
 }
 
 // Show the libuv type instead of generic "userdata"
-LUV_LUAAPI int luv_handle_tostring(lua_State *const L) {
+LUV_LUAAPI int luv_handle__tostring(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
@@ -184,7 +234,7 @@ LUV_CBAPI void luv_gc_close_cb(uv_handle_t *const handle) {
   free(lhandle);
 }
 
-LUV_LUAAPI int luv_handle_gc(lua_State *L) {
+LUV_LUAAPI int luv_handle__gc(lua_State *L) {
   luv_handle_t **const udata = (luv_handle_t **)lua_touserdata(L, 1);
   luv_handle_t *const lhandle = *udata;
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);

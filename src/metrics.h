@@ -23,6 +23,8 @@
 #include "private.h"
 #include "util.h"
 
+LUV_LIBAPI luaL_Reg luv_metrics_functions[];
+
 /* metrics_idle_time() -> integer */
 LUV_LUAAPI int luv_metrics_idle_time(lua_State *L);
 

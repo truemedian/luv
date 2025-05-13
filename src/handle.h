@@ -53,6 +53,9 @@ typedef struct {
   // auto extra;
 } luv_handle_t;
 
+/* create and populate the metatable for the handle named name */
+LUV_LIBAPI int luv_handle_metatable(lua_State *L, const char *name, const luaL_Reg *methods);
+
 /* allocate and initialize a new luv handle */
 LUV_LIBAPI luv_handle_t *luv_new_handle(lua_State *L, uv_handle_type type, const luv_ctx_t *ctx, size_t extra_sz);
 
@@ -80,11 +83,14 @@ static luv_handle_t *luv_check_handle(lua_State *L, int index);
 /* obtain a pointer to any attached extra data given a luv_handle_t */
 #define luv_handle_extra(utype, lhandle) ((char *)(lhandle) + sizeof(luv_handle_t) + sizeof(utype))
 
+LUV_LIBAPI luaL_Reg luv_handle_methods[];
+LUV_LIBAPI luaL_Reg luv_handle_functions[];
+
 /* uv_handle:__tostring(uv_handle) -> string */
-LUV_LUAAPI int luv_handle_tostring(lua_State *L);
+LUV_LUAAPI int luv_handle__tostring(lua_State *L);
 
 /* uv_handle:__gc() -> void */
-LUV_LUAAPI int luv_handle_gc(lua_State *L);
+LUV_LUAAPI int luv_handle__gc(lua_State *L);
 
 /* uv_handle:close([callable]) -> void */
 LUV_LUAAPI int luv_close(lua_State *L);

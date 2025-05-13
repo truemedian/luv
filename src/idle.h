@@ -23,6 +23,9 @@
 
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_idle_methods[];
+LUV_LIBAPI luaL_Reg luv_idle_functions[];
+
 /* ensure the userdata at the given index is a uv_idle and return a pointer to it */
 LUV_LIBAPI uv_idle_t *luv_idle_check(lua_State *L, int index);
 

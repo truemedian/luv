@@ -26,6 +26,17 @@
 #include "luv.h"
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_async_methods[] = {
+  {"send", luv_async_send},
+  {NULL, NULL},
+};
+
+LUV_LIBAPI luaL_Reg luv_async_functions[] = {
+  {"new_async", luv_new_async},
+  {"async_send", luv_async_send},
+  {NULL, NULL},
+};
+
 LUV_CBAPI void luv_async_cb(uv_async_t *const async) {
   luv_handle_t *lhandle = luv_handle_from(async);
   luv_thread_arg_t *args = (luv_thread_arg_t *)luv_handle_extra(uv_async_t, lhandle);

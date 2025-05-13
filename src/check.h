@@ -23,6 +23,9 @@
 
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_check_methods[];
+LUV_LIBAPI luaL_Reg luv_check_functions[];
+
 /* ensure the userdata at the given index is a uv_check and return a pointer to it */
 LUV_LIBAPI uv_check_t *luv_check_check(lua_State *L, int index);
 

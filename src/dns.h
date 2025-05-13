@@ -27,10 +27,13 @@
 
 #include "private.h"
 
-LUV_LIBAPI void luv_pushaddrinfo(lua_State *L, const struct addrinfo *res);
+LUV_LIBAPI luaL_Reg luv_dns_functions[];
+
+LUV_LIBAPI void luv_pushaddrinfo(lua_State *const L, const struct addrinfo *const res);
 
 LUV_LUAAPI int luv_getaddrinfo(lua_State *L);
 
 LUV_LUAAPI int luv_getnameinfo(lua_State *L);
+
 
 #endif

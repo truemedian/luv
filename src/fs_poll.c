@@ -25,6 +25,21 @@
 #include "luv.h"
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_fs_poll_methods[] = {
+  {"start", luv_fs_poll_start},
+  {"stop", luv_fs_poll_stop},
+  {"getpath", luv_fs_poll_getpath},
+  {NULL, NULL},
+};
+
+LUV_LIBAPI luaL_Reg luv_fs_poll_functions[] = {
+  {"new_fs_poll", luv_new_fs_poll},
+  {"fs_poll_start", luv_fs_poll_start},
+  {"fs_poll_stop", luv_fs_poll_stop},
+  {"fs_poll_getpath", luv_fs_poll_getpath},
+  {NULL, NULL},
+};
+
 LUV_CBAPI void luv_fs_poll_cb(
   uv_fs_poll_t *const fs_poll,
   const int status,

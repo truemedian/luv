@@ -24,6 +24,14 @@
 #include "private.h"
 #include "util.h"
 
+LUV_LIBAPI luaL_Reg luv_metrics_functions[] = {
+  {"metrics_idle_time", luv_metrics_idle_time},
+#if LUV_UV_VERSION_GEQ(1, 45, 0)
+  {"metrics_info", luv_metrics_info},
+#endif
+  {NULL, NULL},
+};
+
 LUV_LUAAPI int luv_metrics_idle_time(lua_State *L) {
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
   const uint64_t idle_time = uv_metrics_idle_time(luv_loop(L));

@@ -26,6 +26,21 @@
 #include "luv.h"
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_fs_event_methods[] = {
+  {"start", luv_fs_event_start},
+  {"stop", luv_fs_event_stop},
+  {"getpath", luv_fs_event_getpath},
+  {NULL, NULL},
+};
+
+LUV_LIBAPI luaL_Reg luv_fs_event_functions[] = {
+  {"new_fs_event", luv_new_fs_event},
+  {"fs_event_start", luv_fs_event_start},
+  {"fs_event_stop", luv_fs_event_stop},
+  {"fs_event_getpath", luv_fs_event_getpath},
+  {NULL, NULL},
+};
+
 LUV_CBAPI void luv_fs_event_cb(uv_fs_event_t *fs_event, const char *filename, int events, int status) {
   luv_handle_t *const lhandle = luv_handle_from(fs_event);
   lua_State *L = lhandle->ctx->L;

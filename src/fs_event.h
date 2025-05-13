@@ -23,6 +23,9 @@
 
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_fs_event_methods[];
+LUV_LIBAPI luaL_Reg luv_fs_event_functions[];
+
 /* ensure the userdata at the given index is a uv_fs_event and return a pointer to it */
 LUV_LIBAPI uv_fs_event_t *luv_check_fs_event(lua_State *L, int index);
 

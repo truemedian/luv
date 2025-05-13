@@ -36,6 +36,12 @@
 #include "private.h"
 #include "util.h"
 
+LUV_LIBAPI luaL_Reg luv_dns_functions[] = {
+  {"getaddrinfo", luv_getaddrinfo},
+  {"getnameinfo", luv_getnameinfo},
+  {NULL, NULL},
+};
+
 LUV_LIBAPI void luv_pushaddrinfo(lua_State *const L, const struct addrinfo *const res) {
   char ip_buffer[INET6_ADDRSTRLEN];
   lua_Integer count = 0;

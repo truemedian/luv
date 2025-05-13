@@ -24,10 +24,24 @@
 #include "luv.h"
 #include "private.h"
 
+LUV_LIBAPI luaL_Reg luv_idle_methods[] = {
+  {"start", luv_idle_start},
+  {"stop", luv_idle_stop},
+  {NULL, NULL},
+};
+
+LUV_LIBAPI luaL_Reg luv_idle_functions[] = {
+  {"new_idle", luv_new_idle},
+  {"idle_start", luv_idle_start},
+  {"idle_stop", luv_idle_stop},
+  {NULL, NULL},
+};
+
 LUV_CBAPI void luv_idle_cb(uv_idle_t *const handle) {
   luv_handle_t *const lhandle = luv_handle_from(handle);
+  lua_State *const L = lhandle->ctx->L;
 
-  luv_callback_send(LUV_CB_EVENT, lhandle, 0);
+  luv_callback_send(L, LUV_CB_EVENT, lhandle, 0);
 }
 
 LUV_LIBAPI uv_idle_t *luv_idle_check(lua_State *const L, const int index) {
@@ -57,7 +71,7 @@ LUV_LUAAPI int luv_idle_start(lua_State *const L) {
   uv_idle_t *const idle = luv_idle_check(L, 1);
   luv_handle_t *const lhandle = luv_handle_from(idle);
 
-  luv_callback_prep(LUV_CB_EVENT, lhandle, 2);
+  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
 
   const int ret = uv_idle_start(idle, luv_idle_cb);
   return luv_result(L, ret);
