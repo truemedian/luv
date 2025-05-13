@@ -14,37 +14,44 @@
  *  limitations under the License.
  *
  */
+#include "metrics.h"
+
+#include <lua.h>
+#include <stdint.h>
+#include <uv.h>
 
 #include "luv.h"
+#include "private.h"
 #include "util.h"
 
+LUV_LUAAPI int luv_metrics_idle_time(lua_State *L) {
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
-static int luv_metrics_idle_time(lua_State* L) {
-  uint64_t idle_time = uv_metrics_idle_time(luv_loop(L));
-  lua_pushinteger(L, idle_time);
+  const uint64_t idle_time = uv_metrics_idle_time(luv_loop(L));
+  lua_pushinteger(L, (lua_Integer)idle_time);
+#else
+  lua_pushinteger(L, 0);
+#endif
   return 1;
 }
-#endif
 
 #if LUV_UV_VERSION_GEQ(1, 45, 0)
-static int luv_metrics_info(lua_State *L) {
+LUV_LUAAPI int luv_metrics_info(lua_State *L) {
   uv_metrics_t metrics;
-  int ret = uv_metrics_info(luv_loop(L), &metrics);
-  if (ret < 0) return luv_error(L, ret);
+  const int ret = uv_metrics_info(luv_loop(L), &metrics);
+  if (ret < 0) {
+    return luv_error(L, ret);
+  }
 
-  lua_newtable(L);
+  lua_createtable(L, 0, 3);
 
-  lua_pushliteral(L, "loop_count");
-  lua_pushinteger(L, metrics.loop_count);
-  lua_rawset(L, -3);
+  lua_pushinteger(L, (lua_Integer)metrics.loop_count);
+  lua_setfield(L, -2, "loop_count");
 
-  lua_pushliteral(L, "events");
-  lua_pushinteger(L, metrics.events);
-  lua_rawset(L, -3);
+  lua_pushinteger(L, (lua_Integer)metrics.events);
+  lua_setfield(L, -2, "events");
 
-  lua_pushliteral(L, "events_waiting");
-  lua_pushinteger(L, metrics.events_waiting);
-  lua_rawset(L, -3);
+  lua_pushinteger(L, (lua_Integer)metrics.events_waiting);
+  lua_setfield(L, -2, "events_waiting");
 
   return 1;
 }

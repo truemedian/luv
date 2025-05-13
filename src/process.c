@@ -304,7 +304,7 @@ static int luv_parse_signal(lua_State* L, int slot) {
     return lua_tonumber(L, slot);
   }
   if (lua_isstring(L, slot)) {
-    return luv_sig_string_to_num(lua_tostring(L, slot));
+    return luv_signal_str2int(lua_tostring(L, slot));
   }
   return SIGTERM;
 }

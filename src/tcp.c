@@ -39,7 +39,7 @@ static int luv_new_tcp(lua_State* L) {
     }
     else if (lua_isstring(L, 1)) {
       const char* family = lua_tostring(L, 1);
-      flags = luv_af_string_to_num(family);
+      flags = luv_addrfamily_str2int(family);
       if (!flags) {
         luaL_argerror(L, 1, lua_pushfstring(L, "invalid or unknown address family: '%s'", family));
       }
@@ -133,7 +133,7 @@ static void parse_sockaddr(lua_State* L, struct sockaddr_storage* address) {
     port = ntohs(addrin6->sin6_port);
   }
 
-  lua_pushstring(L, luv_af_num_to_string(addr->sa_family));
+  lua_pushstring(L, luv_addrfamily_int2str(addr->sa_family));
   lua_setfield(L, -2, "family");
   lua_pushinteger(L, port);
   lua_setfield(L, -2, "port");
@@ -236,7 +236,7 @@ static int luv_socketpair(lua_State* L) {
     socktype = lua_tointeger(L, 1);
   }
   else if (lua_isstring(L, 1)) {
-    socktype = luv_sock_string_to_num(lua_tostring(L, 1));
+    socktype = luv_sockdomain_str2int(lua_tostring(L, 1));
     if (socktype == 0) {
       return luaL_argerror(L, 1, lua_pushfstring(L, "invalid socket type: %s", lua_tostring(L, 1)));
     }
@@ -249,7 +249,7 @@ static int luv_socketpair(lua_State* L) {
     protocol = lua_tointeger(L, 2);
   }
   else if (lua_isstring(L, 2)) {
-    protocol = luv_proto_string_to_num(lua_tostring(L, 2));
+    protocol = luv_protocol_str2int(lua_tostring(L, 2));
     if (protocol < 0) {
       return luaL_argerror(L, 2, lua_pushfstring(L, "invalid protocol: %s", lua_tostring(L, 2)));
     }

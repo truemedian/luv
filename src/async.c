@@ -14,50 +14,60 @@
  *  limitations under the License.
  *
  */
+
+#include "async.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+#include <uv.h>
+
+#include "handle.h"
+#include "lthreadpool.h"
+#include "luv.h"
 #include "private.h"
 
-static uv_async_t* luv_check_async(lua_State* L, int index) {
-  uv_async_t* handle = (uv_async_t*)luv_checkudata(L, index, "uv_async");
-  luaL_argcheck(L, handle->type == UV_ASYNC && handle->data, index, "Expected uv_async_t");
-  return handle;
+LUV_CBAPI void luv_async_cb(uv_async_t *const async) {
+  luv_handle_t *lhandle = luv_handle_from(async);
+  luv_thread_arg_t *args = (luv_thread_arg_t *)luv_handle_extra(uv_async_t, lhandle);
+  lua_State *L = lhandle->ctx->L;
+
+  const int argc = luv_thread_arg_push(L, args, LUVF_THREAD_SIDE_MAIN);
+  luv_callback_send(L, LUV_CB_EVENT, lhandle, argc);
+  luv_thread_arg_clear(L, args, LUVF_THREAD_SIDE_MAIN);
 }
 
-static void luv_async_cb(uv_async_t* handle) {
-  luv_handle_t* data = (luv_handle_t*)handle->data;
-  lua_State* L = data->ctx->L;
-  int n = luv_thread_arg_push(L, (luv_thread_arg_t*)data->extra, LUVF_THREAD_SIDE_MAIN);
-  luv_call_callback(L, data, LUV_ASYNC, n);
-  luv_thread_arg_clear(L, (luv_thread_arg_t*)data->extra, LUVF_THREAD_SIDE_MAIN);
+LUV_LIBAPI uv_async_t *luv_check_async(lua_State *const L, const int index) {
+  luv_handle_t *const lhandle = (luv_handle_t *)luv_checkudata(L, index, "uv_async");
+  uv_async_t *const async = luv_handle_of(uv_async_t, lhandle);
+
+  luaL_argcheck(L, async->type == UV_ASYNC, index, "expected uv_async handle");
+  return async;
 }
 
-static int luv_new_async(lua_State* L) {
-  uv_async_t* handle;
-  luv_handle_t* data;
-  int ret;
-  luv_ctx_t* ctx = luv_context(L);
-  luaL_checktype(L, 1, LUA_TFUNCTION);
-  handle = (uv_async_t*)luv_newuserdata(L, uv_handle_size(UV_ASYNC));
-  ret = uv_async_init(ctx->loop, handle, luv_async_cb);
+LUV_LUAAPI int luv_new_async(lua_State *const L) {
+  const luv_ctx_t *const ctx = luv_context(L);
+
+  luv_handle_t *const lhandle = luv_new_handle(L, UV_ASYNC, ctx, sizeof(luv_thread_arg_t));
+  uv_async_t *const async = luv_handle_of(uv_async_t, lhandle);
+
+  const int ret = uv_async_init(ctx->loop, async, luv_async_cb);
   if (ret < 0) {
     lua_pop(L, 1);
+    luv_handle_unref(L, lhandle);
     return luv_error(L, ret);
   }
-  data = luv_setup_handle(L, ctx);
-  data->extra = (luv_thread_arg_t*)malloc(sizeof(luv_thread_arg_t));
-  data->extra_gc = free;
-  memset(data->extra, 0, sizeof(luv_thread_arg_t));
-  handle->data = data;
-  luv_check_callback(L, (luv_handle_t*)handle->data, LUV_ASYNC, 1);
+
+  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 1);
   return 1;
 }
 
-static int luv_async_send(lua_State* L) {
-  int ret;
-  uv_async_t* handle = luv_check_async(L, 1);
-  luv_thread_arg_t* arg = (luv_thread_arg_t *)((luv_handle_t*) handle->data)->extra;
+LUV_LUAAPI int luv_async_send(lua_State *const L) {
+  uv_async_t *const async = luv_check_async(L, 1);
+  luv_handle_t *const lhandle = luv_handle_from(async);
+  luv_thread_arg_t *const args = (luv_thread_arg_t *)luv_handle_extra(uv_async_t, lhandle);
 
-  luv_thread_arg_set(L, arg, 2, lua_gettop(L), LUVF_THREAD_MODE_ASYNC|LUVF_THREAD_SIDE_CHILD);
-  ret = uv_async_send(handle);
-  luv_thread_arg_clear(L, arg, LUVF_THREAD_SIDE_CHILD);
+  luv_thread_arg_set(L, args, 2, lua_gettop(L), LUVF_THREAD_MODE_ASYNC | LUVF_THREAD_SIDE_CHILD);
+  const int ret = uv_async_send(async);
+  luv_thread_arg_clear(L, args, LUVF_THREAD_SIDE_CHILD);
   return luv_result(L, ret);
 }

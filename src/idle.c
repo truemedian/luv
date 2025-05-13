@@ -14,43 +14,57 @@
  *  limitations under the License.
  *
  */
+#include "idle.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+#include <uv.h>
+
+#include "handle.h"
+#include "luv.h"
 #include "private.h"
 
-static uv_idle_t* luv_check_idle(lua_State* L, int index) {
-  uv_idle_t* handle = (uv_idle_t*)luv_checkudata(L, index, "uv_idle");
-  luaL_argcheck(L, handle->type == UV_IDLE && handle->data, index, "Expected uv_idle_t");
-  return handle;
+LUV_CBAPI void luv_idle_cb(uv_idle_t *const handle) {
+  luv_handle_t *const lhandle = luv_handle_from(handle);
+
+  luv_callback_send(LUV_CB_EVENT, lhandle, 0);
 }
 
-static int luv_new_idle(lua_State* L) {
-  luv_ctx_t* ctx = luv_context(L);
-  uv_idle_t* handle = (uv_idle_t*)luv_newuserdata(L, uv_handle_size(UV_IDLE));
-  int ret = uv_idle_init(ctx->loop, handle);
+LUV_LIBAPI uv_idle_t *luv_idle_check(lua_State *const L, const int index) {
+  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_idle");
+  uv_idle_t *const idle = luv_handle_of(uv_idle_t, lhandle);
+
+  luaL_argcheck(L, idle->type == UV_IDLE, index, "expected uv_idle handle");
+  return idle;
+}
+
+LUV_LUAAPI int luv_new_idle(lua_State *const L) {
+  luv_ctx_t *const ctx = luv_context(L);
+
+  luv_handle_t *const lhandle = luv_new_handle(L, UV_IDLE, ctx, 0);
+  uv_idle_t *const idle = luv_handle_of(uv_idle_t, lhandle);
+
+  const int ret = uv_idle_init(ctx->loop, idle);
   if (ret < 0) {
     lua_pop(L, 1);
     return luv_error(L, ret);
   }
-  handle->data = luv_setup_handle(L, ctx);
+
   return 1;
 }
 
-static void luv_idle_cb(uv_idle_t* handle) {
-  luv_handle_t* data = (luv_handle_t*)handle->data;
-  lua_State* L = data->ctx->L;
-  luv_call_callback(L, data, LUV_IDLE, 0);
-}
+LUV_LUAAPI int luv_idle_start(lua_State *const L) {
+  uv_idle_t *const idle = luv_idle_check(L, 1);
+  luv_handle_t *const lhandle = luv_handle_from(idle);
 
-static int luv_idle_start(lua_State* L) {
-  uv_idle_t* handle = luv_check_idle(L, 1);
-  int ret;
-  luv_check_callback(L, (luv_handle_t *)handle->data, LUV_IDLE, 2);
-  ret = uv_idle_start(handle, luv_idle_cb);
+  luv_callback_prep(LUV_CB_EVENT, lhandle, 2);
+
+  const int ret = uv_idle_start(idle, luv_idle_cb);
   return luv_result(L, ret);
 }
 
-static int luv_idle_stop(lua_State* L) {
-  uv_idle_t* handle = luv_check_idle(L, 1);
-  int ret = uv_idle_stop(handle);
+LUV_LUAAPI int luv_idle_stop(lua_State *const L) {
+  uv_idle_t *const idle = luv_idle_check(L, 1);
+  const int ret = uv_idle_stop(idle);
   return luv_result(L, ret);
 }
-

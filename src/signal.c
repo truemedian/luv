@@ -37,7 +37,7 @@ static int luv_new_signal(lua_State* L) {
 static void luv_signal_cb(uv_signal_t* handle, int signum) {
   luv_handle_t* data = (luv_handle_t*)handle->data;
   lua_State* L = data->ctx->L;
-  lua_pushstring(L, luv_sig_num_to_string(signum));
+  lua_pushstring(L, luv_signal_int2str(signum));
   luv_call_callback(L, data, LUV_SIGNAL, 1);
 }
 
@@ -48,7 +48,7 @@ static int luv_signal_start(lua_State* L) {
     signum = lua_tointeger(L, 2);
   }
   else if (lua_isstring(L, 2)) {
-    signum = luv_sig_string_to_num(luaL_checkstring(L, 2));
+    signum = luv_signal_str2int(luaL_checkstring(L, 2));
     luaL_argcheck(L, signum, 2, "Invalid Signal name");
   }
   else {
@@ -70,7 +70,7 @@ static int luv_signal_start_oneshot(lua_State* L) {
     signum = lua_tointeger(L, 2);
   }
   else if (lua_isstring(L, 2)) {
-    signum = luv_sig_string_to_num(luaL_checkstring(L, 2));
+    signum = luv_signal_str2int(luaL_checkstring(L, 2));
     luaL_argcheck(L, signum, 2, "Invalid Signal name");
   }
   else {

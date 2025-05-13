@@ -15,29 +15,20 @@
  *
  */
 
+#include "fs_event.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+#include <stddef.h>
+#include <uv.h>
+
+#include "handle.h"
+#include "luv.h"
 #include "private.h"
 
-static uv_fs_event_t* luv_check_fs_event(lua_State* L, int index) {
-  uv_fs_event_t* handle = (uv_fs_event_t*)luv_checkudata(L, index, "uv_fs_event");
-  luaL_argcheck(L, handle->type == UV_FS_EVENT && handle->data, index, "Expected uv_fs_event_t");
-  return handle;
-}
-
-static int luv_new_fs_event(lua_State* L) {
-  luv_ctx_t* ctx = luv_context(L);
-  uv_fs_event_t* handle = (uv_fs_event_t*)luv_newuserdata(L, uv_handle_size(UV_FS_EVENT));
-  int ret = uv_fs_event_init(ctx->loop, handle);
-  if (ret < 0) {
-    lua_pop(L, 1);
-    return luv_error(L, ret);
-  }
-  handle->data = luv_setup_handle(L, ctx);
-  return 1;
-}
-
-static void luv_fs_event_cb(uv_fs_event_t* handle, const char* filename, int events, int status) {
-  luv_handle_t* data = (luv_handle_t*)handle->data;
-  lua_State* L = data->ctx->L;
+LUV_CBAPI void luv_fs_event_cb(uv_fs_event_t *fs_event, const char *filename, int events, int status) {
+  luv_handle_t *const lhandle = luv_handle_from(fs_event);
+  lua_State *L = lhandle->ctx->L;
 
   // err
   luv_status(L, status);
@@ -46,50 +37,88 @@ static void luv_fs_event_cb(uv_fs_event_t* handle, const char* filename, int eve
   lua_pushstring(L, filename);
 
   // events
-  lua_newtable(L);
-  if (events & UV_RENAME) {
-    lua_pushboolean(L, 1);
-    lua_setfield(L, -2, "rename");
-  }
-  if (events & UV_CHANGE) {
-    lua_pushboolean(L, 1);
-    lua_setfield(L, -2, "change");
-  }
+  lua_createtable(L, 0, 2);
+  lua_pushboolean(L, (events & UV_RENAME) != 0);
+  lua_setfield(L, -2, "rename");
+  lua_pushboolean(L, (events & UV_CHANGE) != 0);
+  lua_setfield(L, -2, "change");
 
-  luv_call_callback(L, (luv_handle_t*)handle->data, LUV_FS_EVENT, 3);
+  luv_callback_send(L, LUV_CB_EVENT, lhandle, 3);
 }
 
-static int luv_fs_event_start(lua_State* L) {
-  uv_fs_event_t* handle = luv_check_fs_event(L, 1);
-  const char* path = luaL_checkstring(L, 2);
-  int flags = 0, ret;
-  luaL_checktype(L, 3, LUA_TTABLE);
-  lua_getfield(L, 3, "watch_entry");
-  if (lua_toboolean(L, -1)) flags |= UV_FS_EVENT_WATCH_ENTRY;
-  lua_pop(L, 1);
-  lua_getfield(L, 3, "stat");
-  if (lua_toboolean(L, -1)) flags |= UV_FS_EVENT_STAT;
-  lua_pop(L, 1);
-  lua_getfield(L, 3, "recursive");
-  if (lua_toboolean(L, -1)) flags |= UV_FS_EVENT_RECURSIVE;
-  lua_pop(L, 1);
-  luv_check_callback(L, (luv_handle_t*)handle->data, LUV_FS_EVENT, 4);
-  ret = uv_fs_event_start(handle, luv_fs_event_cb, path, flags);
+LUV_LIBAPI uv_fs_event_t *luv_check_fs_event(lua_State *const L, const int index) {
+  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_fs_event");
+  uv_fs_event_t *const fs_event = luv_handle_of(uv_fs_event_t, lhandle);
+
+  luaL_argcheck(L, fs_event->type == UV_FS_EVENT, index, "expected uv_fs_event handle");
+  return fs_event;
+}
+
+LUV_LUAAPI int luv_new_fs_event(lua_State *const L) {
+  const luv_ctx_t *const ctx = luv_context(L);
+
+  luv_handle_t *const lhandle = luv_new_handle(L, UV_FS_EVENT, ctx, 0);
+  uv_fs_event_t *const fs_event = luv_handle_of(uv_fs_event_t, lhandle);
+
+  const int ret = uv_fs_event_init(ctx->loop, fs_event);
+  if (ret < 0) {
+    lua_pop(L, 1);
+    return luv_error(L, ret);
+  }
+
+  return 1;
+}
+
+LUV_LUAAPI int luv_fs_event_start(lua_State *const L) {
+  uv_fs_event_t *const fs_event = luv_check_fs_event(L, 1);
+  luv_handle_t *const lhandle = luv_handle_from(fs_event);
+
+  const char *path = luaL_checkstring(L, 2);
+  int flags = 0;
+  if (!lua_isnoneornil(L, 3)) {
+    luaL_checktype(L, 3, LUA_TTABLE);
+
+    lua_getfield(L, 3, "watch_entry");
+    if (lua_toboolean(L, -1) != 0) {
+      flags |= UV_FS_EVENT_WATCH_ENTRY;
+    }
+
+    lua_getfield(L, 3, "stat");
+    if (lua_toboolean(L, -1) != 0) {
+      flags |= UV_FS_EVENT_STAT;
+    }
+
+    lua_getfield(L, 3, "recursive");
+    if (lua_toboolean(L, -1) != 0) {
+      flags |= UV_FS_EVENT_RECURSIVE;
+    }
+
+    lua_pop(L, 3);
+  }
+
+  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 4);
+
+  const int ret = uv_fs_event_start(fs_event, luv_fs_event_cb, path, flags);
   return luv_result(L, ret);
 }
 
-static int luv_fs_event_stop(lua_State* L) {
-  uv_fs_event_t* handle = luv_check_fs_event(L, 1);
-  int ret = uv_fs_event_stop(handle);
+LUV_LUAAPI int luv_fs_event_stop(lua_State *const L) {
+  uv_fs_event_t *fs_event = luv_check_fs_event(L, 1);
+  const int ret = uv_fs_event_stop(fs_event);
   return luv_result(L, ret);
 }
 
-static int luv_fs_event_getpath(lua_State* L) {
-  uv_fs_event_t* handle = luv_check_fs_event(L, 1);
-  size_t len = 2*PATH_MAX;
-  char buf[2*PATH_MAX];
-  int ret = uv_fs_event_getpath(handle, buf, &len);
-  if (ret < 0) return luv_error(L, ret);
+LUV_LUAAPI int luv_fs_event_getpath(lua_State *const L) {
+  uv_fs_event_t *fs_event = luv_check_fs_event(L, 1);
+
+  size_t len = 2 * PATH_MAX;
+  char buf[2 * PATH_MAX];
+
+  const int ret = uv_fs_event_getpath(fs_event, buf, &len);
+  if (ret < 0) {
+    return luv_error(L, ret);
+  }
+
   lua_pushlstring(L, buf, len);
   return 1;
 }

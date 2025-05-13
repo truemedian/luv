@@ -16,6 +16,39 @@
  */
 #include "private.h"
 
+static int luv_traceback (lua_State *L) {
+  if (!lua_isstring(L, 1))  /* 'message' not a string? */
+    return 1;  /* keep it intact */
+  lua_pushglobaltable(L);
+  lua_getfield(L, -1, "debug");
+  lua_remove(L, -2);
+  if (!lua_istable(L, -1)) {
+    lua_pop(L, 1);
+    return 1;
+  }
+  lua_getfield(L, -1, "traceback");
+  if (!lua_isfunction(L, -1)) {
+    lua_pop(L, 2);
+    return 1;
+  }
+  lua_pushvalue(L, 1);  /* pass error message */
+  lua_pushinteger(L, 2);  /* skip this function and traceback */
+  lua_call(L, 2, 1);  /* call debug.traceback */
+  return 1;
+}
+
+static void* luv_newuserdata(lua_State* L, size_t sz) {
+  void* handle = malloc(sz);
+  if (handle) {
+    *(void**)lua_newuserdata(L, sizeof(void*)) = handle;
+  }
+  return handle;
+}
+
+static void* luv_checkudata(lua_State* L, int ud, const char* tname) {
+  return *(void**) luaL_checkudata(L, ud, tname);
+}
+
 void luv_stack_dump(lua_State* L, const char* name) {
   int i, l;
   fprintf(stderr, "\nAPI STACK DUMP %p %d: %s\n", L, lua_status(L), name);

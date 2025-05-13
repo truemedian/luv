@@ -1,26 +1,22 @@
 #ifndef LUV_PRIVATE_H
 #define LUV_PRIVATE_H
 
+#define LUV_LUAAPI extern
+#define LUV_LIBAPI extern
+#define LUV_CBAPI static
+
 #include <lua.h>
 #if (LUA_VERSION_NUM < 503)
 #include "compat-5.3.h"
 #endif
 
-#include "lreq.h"
 #include "lthreadpool.h"
 #include "luv.h"
 #include "util.h"
 
-/* From constants.c */
-#include "constants.h"
-
-#define LUV_LUAAPI extern
-#define LUV_LIBAPI extern
-#define LUV_CBAPI static
-
 #if defined(__clang__)
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
+// #pragma clang diagnostic ignored "-Wunused-function"
 #endif
 
 /* From stream.c */
@@ -31,25 +27,6 @@ static void luv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* b
 /* Traceback for lua_pcall */
 static int luv_traceback (lua_State *L);
 
-/* Setup the handle at the top of the stack */
-static luv_handle_t* luv_setup_handle(lua_State* L, luv_ctx_t* ctx);
-
-/* Store a lua callback in a luv_handle for future callbacks.
-   Either replace an existing callback by id or append a new one at the end.
-*/
-static void luv_check_callback(lua_State* L, luv_handle_t* data, luv_callback_id id, int index);
-
-/* Lookup a function and call it with nargs
-   If there is no such function, pop the args.
-*/
-static void luv_call_callback(lua_State* L, luv_handle_t* data, luv_callback_id id, int nargs);
-
-/* Push a userdata on the stack from a handle */
-static void luv_find_handle(lua_State* L, luv_handle_t* data);
-
-/* Unref the handle from the lua world, allowing it to GC */
-static void luv_unref_handle(lua_State* L, luv_handle_t* data);
-
 /* From lreq.c */
 /* Used in the top of a setup function to check the arg
    and ref the callback to an integer.
@@ -59,10 +36,10 @@ static int luv_check_continuation(lua_State* L, int index);
 /* setup a luv_req_t.  The userdata is assumed to be at the
    top of the stack.
 */
-static luv_req_t* luv_setup_req(lua_State* L, luv_ctx_t* ctx, int ref);
-static luv_req_t* luv_setup_req_with_mt(lua_State* L, luv_ctx_t* ctx, int ref, const char* mt_name);
-static void luv_fulfill_req(lua_State* L, luv_req_t* data, int nargs);
-static void luv_cleanup_req(lua_State* L, luv_req_t* data);
+// static luv_req_t* luv_setup_req(lua_State* L, luv_ctx_t* ctx, int ref);
+// static luv_req_t* luv_setup_req_with_mt(lua_State* L, luv_ctx_t* ctx, int ref, const char* mt_name);
+// static void luv_fulfill_req(lua_State* L, luv_req_t* data, int nargs);
+// static void luv_cleanup_req(lua_State* L, luv_req_t* data);
 
 /* From handle.c */
 static void* luv_checkudata(lua_State* L, int ud, const char* tname);
@@ -70,10 +47,10 @@ static void* luv_newuserdata(lua_State* L, size_t sz);
 
 
 /* From misc.c */
-static void luv_prep_buf(lua_State *L, int idx, uv_buf_t *pbuf);
-static uv_buf_t* luv_prep_bufs(lua_State* L, int index, size_t *count, int **refs);
-static uv_buf_t* luv_check_bufs(lua_State* L, int index, size_t *count, luv_req_t* req_data);
-static uv_buf_t* luv_check_bufs_noref(lua_State* L, int index, size_t *count);
+// static void luv_prep_buf(lua_State *L, int idx, uv_buf_t *pbuf);
+// static uv_buf_t* luv_prep_bufs(lua_State* L, int index, size_t *count, int **refs);
+// static uv_buf_t* luv_check_bufs(lua_State* L, int index, size_t *count, luv_req_t* req_data);
+// static uv_buf_t* luv_check_bufs_noref(lua_State* L, int index, size_t *count);
 
 /* From tcp.c */
 static void parse_sockaddr(lua_State* L, struct sockaddr_storage* address);

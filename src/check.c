@@ -14,43 +14,58 @@
  *  limitations under the License.
  *
  */
+#include "check.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+#include <uv.h>
+
+#include "handle.h"
+#include "luv.h"
 #include "private.h"
 
-static uv_check_t* luv_check_check(lua_State* L, int index) {
-  uv_check_t* handle = (uv_check_t*)luv_checkudata(L, index, "uv_check");
-  luaL_argcheck(L, handle->type == UV_CHECK && handle->data, index, "Expected uv_check_t");
-  return handle;
+LUV_CBAPI void luv_check_cb(uv_check_t *const check) {
+  luv_handle_t *const lhandle = luv_handle_from(check);
+  lua_State *const L = lhandle->ctx->L;
+
+  luv_callback_send(L, LUV_CB_EVENT, lhandle, 0);
 }
 
-static int luv_new_check(lua_State* L) {
-  luv_ctx_t* ctx = luv_context(L);
-  uv_check_t* handle = (uv_check_t*)luv_newuserdata(L, uv_handle_size(UV_CHECK));
-  int ret = uv_check_init(ctx->loop, handle);
+LUV_LIBAPI uv_check_t *luv_check_check(lua_State *const L, const int index) {
+  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_check");
+  uv_check_t *const check = luv_handle_of(uv_check_t, lhandle);
+
+  luaL_argcheck(L, check->type == UV_CHECK, index, "expected uv_check handle");
+  return check;
+}
+
+LUV_LUAAPI int luv_new_check(lua_State *const L) {
+  const luv_ctx_t *const ctx = luv_context(L);
+
+  luv_handle_t *const lhandle = luv_new_handle(L, UV_CHECK, ctx, 0);
+  uv_check_t *const check = luv_handle_of(uv_check_t, lhandle);
+
+  const int ret = uv_check_init(ctx->loop, check);
   if (ret < 0) {
     lua_pop(L, 1);
     return luv_error(L, ret);
   }
-  handle->data = luv_setup_handle(L, ctx);
+
   return 1;
 }
 
-static void luv_check_cb(uv_check_t* handle) {
-  luv_handle_t* data = (luv_handle_t*)handle->data;
-  lua_State* L = data->ctx->L;
-  luv_call_callback(L, data, LUV_CHECK, 0);
-}
+LUV_LUAAPI int luv_check_start(lua_State *const L) {
+  uv_check_t *const check = luv_check_check(L, 1);
+  luv_handle_t *const lhandle = luv_handle_from(check);
 
-static int luv_check_start(lua_State* L) {
-  uv_check_t* handle = luv_check_check(L, 1);
-  int ret;
-  luv_check_callback(L, (luv_handle_t *)handle->data, LUV_CHECK, 2);
-  ret = uv_check_start(handle, luv_check_cb);
+  luv_callback_prep(LUV_CB_EVENT, lhandle, 2);
+
+  const int ret = uv_check_start(check, luv_check_cb);
   return luv_result(L, ret);
 }
 
-static int luv_check_stop(lua_State* L) {
-  uv_check_t* handle = luv_check_check(L, 1);
-  int ret = uv_check_stop(handle);
+LUV_LUAAPI int luv_check_stop(lua_State *const L) {
+  uv_check_t *const check = luv_check_check(L, 1);
+  const int ret = uv_check_stop(check);
   return luv_result(L, ret);
 }
-
