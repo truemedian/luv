@@ -14,20 +14,23 @@
  *  limitations under the License.
  *
  */
-#ifndef LUV_LREQ_H
-#define LUV_LREQ_H
+#ifndef LUV_DNS_H
+#define LUV_DNS_H
 
-#include "luv.h"
+#ifndef WIN32
+#include <netdb.h>
+#else
+#include <ws2def.h>
+#endif
 
-typedef struct {
-  int req_ref; /* ref for uv_req_t's userdata */
-  int callback_ref; /* ref for callback */
-  int data_ref; /* ref for write data */
-  luv_ctx_t* ctx; /* context for callback */
-  void* data; /* extra data */
-} luv_req_t;
+#include <lua.h>
 
-// This is an arbitrary value that we can assume will never be returned by luaL_ref
-#define LUV_REQ_MULTIREF (-0x1234)
+#include "private.h"
+
+LUV_LIBAPI void luv_pushaddrinfo(lua_State *L, const struct addrinfo *res);
+
+LUV_LUAAPI int luv_getaddrinfo(lua_State *L);
+
+LUV_LUAAPI int luv_getnameinfo(lua_State *L);
 
 #endif
