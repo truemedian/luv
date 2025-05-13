@@ -27,7 +27,7 @@
 #include "luv.h"
 #include "private.h"
 
-LUV_LIBAPI luaL_Reg luv_handle_methods[] = {
+LUV_DEFAPI luaL_Reg luv_handle_methods[] = {
   {"close", luv_close},
   {"is_active", luv_is_active},
   {"is_closing", luv_is_closing},
@@ -41,7 +41,7 @@ LUV_LIBAPI luaL_Reg luv_handle_methods[] = {
   {NULL, NULL},
 };
 
-LUV_LIBAPI luaL_Reg luv_handle_functions[] = {
+LUV_DEFAPI luaL_Reg luv_handle_functions[] = {
   {"close", luv_close},
   {"is_active", luv_is_active},
   {"is_closing", luv_is_closing},
@@ -76,6 +76,8 @@ LUV_LIBAPI int luv_handle_metatable(lua_State *L, const char *name, const luaL_R
   luaL_newlib(L, luv_handle_methods);
   luaL_setfuncs(L, methods, 0);
   lua_setfield(L, -2, "__index");
+
+  return 1;
 }
 
 LUV_LIBAPI luv_handle_t *luv_new_handle(

@@ -31,9 +31,9 @@
 #include <uv.h>
 
 #include "constants.h"
-#include "request.h"
 #include "luv.h"
 #include "private.h"
+#include "request.h"
 #include "util.h"
 
 LUV_LIBAPI luaL_Reg luv_dns_functions[] = {
@@ -117,26 +117,6 @@ LUV_CBAPI void luv_getaddrinfo_cb(uv_getaddrinfo_t *req, int status, struct addr
   if (res != NULL) {
     uv_freeaddrinfo(res);
   }
-}
-
-LUV_CBAPI void luv_getnameinfo_cb(uv_getnameinfo_t *req, int status, const char *hostname, const char *service) {
-  luv_req_t *data = (luv_req_t *)req->data;
-  lua_State *L = data->ctx->L;
-  int nargs;
-
-  if (status < 0) {
-    luv_status(L, status);
-    nargs = 1;
-  } else {
-    lua_pushnil(L);
-    lua_pushstring(L, hostname);
-    lua_pushstring(L, service);
-    nargs = 3;
-  }
-
-  luv_fulfill_req(L, (luv_req_t *)req->data, nargs);
-  luv_cleanup_req(L, (luv_req_t *)req->data);
-  req->data = NULL;
 }
 
 LUV_LUAAPI int luv_getaddrinfo(lua_State *const L) {
@@ -273,6 +253,26 @@ LUV_LUAAPI int luv_getaddrinfo(lua_State *const L) {
 #endif
 
   return 1;
+}
+
+LUV_CBAPI void luv_getnameinfo_cb(uv_getnameinfo_t *req, int status, const char *hostname, const char *service) {
+  luv_req_t *data = (luv_req_t *)req->data;
+  lua_State *L = data->ctx->L;
+  int nargs;
+
+  if (status < 0) {
+    luv_status(L, status);
+    nargs = 1;
+  } else {
+    lua_pushnil(L);
+    lua_pushstring(L, hostname);
+    lua_pushstring(L, service);
+    nargs = 3;
+  }
+
+  luv_fulfill_req(L, (luv_req_t *)req->data, nargs);
+  luv_cleanup_req(L, (luv_req_t *)req->data);
+  req->data = NULL;
 }
 
 LUV_LUAAPI int luv_getnameinfo(lua_State *const L) {

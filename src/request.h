@@ -18,6 +18,7 @@
 #define LUV_REQ_H
 
 #include <lua.h>
+#include <stddef.h>
 #include <uv.h>
 
 #include "luv.h"
@@ -44,6 +45,15 @@ typedef struct {
   // uv_req_t req;
 } luv_req_t;
 
+#define LUV_BUFS_PREPARED 10
+
+typedef struct {
+  size_t bufs_count;
+  uv_buf_t *bufs;
+
+  uv_buf_t buf_buffer[LUV_BUFS_PREPARED];
+} luv_bufs_t;
+
 /* obtain a pointer to the libuv request type given a luv_req_t */
 #define luv_request_of(utype, lreq) ((utype *)((char *)(lreq) + sizeof(luv_req_t)))
 
@@ -58,5 +68,11 @@ LUV_LIBAPI void luv_fulfill_req(lua_State *L, luv_req_t *data, int nargs);
 
 /* remove the reference to the request and all callbacks, and free all associated data */
 LUV_LIBAPI void luv_cleanup_req(lua_State *L, luv_req_t *data);
+
+/* populate a list of uv_buf_t with a string or table of strings, holds references when given an associated request */
+LUV_LIBAPI void luv_request_bufs(lua_State *L, luv_req_t *lreq, luv_bufs_t *bufs, int index);
+
+/* clean up any memory allocated by luv_request_bufs */
+LUV_LIBAPI void luv_request_bufs_free(luv_bufs_t *bufs);
 
 #endif  // LUV_REQ_H

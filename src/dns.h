@@ -35,5 +35,4 @@ LUV_LUAAPI int luv_getaddrinfo(lua_State *L);
 
 LUV_LUAAPI int luv_getnameinfo(lua_State *L);
 
-
 #endif

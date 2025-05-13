@@ -26,40 +26,20 @@
 #include "luv.h"
 #include "private.h"
 
-LUV_LIBAPI luaL_Reg luv_fs_event_methods[] = {
+LUV_DEFAPI luaL_Reg luv_fs_event_methods[] = {
   {"start", luv_fs_event_start},
   {"stop", luv_fs_event_stop},
   {"getpath", luv_fs_event_getpath},
   {NULL, NULL},
 };
 
-LUV_LIBAPI luaL_Reg luv_fs_event_functions[] = {
+LUV_DEFAPI luaL_Reg luv_fs_event_functions[] = {
   {"new_fs_event", luv_new_fs_event},
   {"fs_event_start", luv_fs_event_start},
   {"fs_event_stop", luv_fs_event_stop},
   {"fs_event_getpath", luv_fs_event_getpath},
   {NULL, NULL},
 };
-
-LUV_CBAPI void luv_fs_event_cb(uv_fs_event_t *fs_event, const char *filename, int events, int status) {
-  luv_handle_t *const lhandle = luv_handle_from(fs_event);
-  lua_State *L = lhandle->ctx->L;
-
-  // err
-  luv_status(L, status);
-
-  // filename
-  lua_pushstring(L, filename);
-
-  // events
-  lua_createtable(L, 0, 2);
-  lua_pushboolean(L, (events & UV_RENAME) != 0);
-  lua_setfield(L, -2, "rename");
-  lua_pushboolean(L, (events & UV_CHANGE) != 0);
-  lua_setfield(L, -2, "change");
-
-  luv_callback_send(L, LUV_CB_EVENT, lhandle, 3);
-}
 
 LUV_LIBAPI uv_fs_event_t *luv_check_fs_event(lua_State *const L, const int index) {
   const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_fs_event");
@@ -82,6 +62,26 @@ LUV_LUAAPI int luv_new_fs_event(lua_State *const L) {
   }
 
   return 1;
+}
+
+LUV_CBAPI void luv_fs_event_cb(uv_fs_event_t *fs_event, const char *filename, int events, int status) {
+  luv_handle_t *const lhandle = luv_handle_from(fs_event);
+  lua_State *L = lhandle->ctx->L;
+
+  // err
+  luv_status(L, status);
+
+  // filename
+  lua_pushstring(L, filename);
+
+  // events
+  lua_createtable(L, 0, 2);
+  lua_pushboolean(L, (events & UV_RENAME) != 0);
+  lua_setfield(L, -2, "rename");
+  lua_pushboolean(L, (events & UV_CHANGE) != 0);
+  lua_setfield(L, -2, "change");
+
+  luv_callback_send(L, LUV_CB_EVENT, lhandle, 3);
 }
 
 LUV_LUAAPI int luv_fs_event_start(lua_State *const L) {

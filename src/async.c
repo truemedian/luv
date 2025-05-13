@@ -26,16 +26,24 @@
 #include "luv.h"
 #include "private.h"
 
-LUV_LIBAPI luaL_Reg luv_async_methods[] = {
+LUV_DEFAPI luaL_Reg luv_async_methods[] = {
   {"send", luv_async_send},
   {NULL, NULL},
 };
 
-LUV_LIBAPI luaL_Reg luv_async_functions[] = {
+LUV_DEFAPI luaL_Reg luv_async_functions[] = {
   {"new_async", luv_new_async},
   {"async_send", luv_async_send},
   {NULL, NULL},
 };
+
+LUV_LIBAPI uv_async_t *luv_check_async(lua_State *const L, const int index) {
+  luv_handle_t *const lhandle = (luv_handle_t *)luv_checkudata(L, index, "uv_async");
+  uv_async_t *const async = luv_handle_of(uv_async_t, lhandle);
+
+  luaL_argcheck(L, async->type == UV_ASYNC, index, "expected uv_async handle");
+  return async;
+}
 
 LUV_CBAPI void luv_async_cb(uv_async_t *const async) {
   luv_handle_t *lhandle = luv_handle_from(async);
@@ -45,14 +53,6 @@ LUV_CBAPI void luv_async_cb(uv_async_t *const async) {
   const int argc = luv_thread_arg_push(L, args, LUVF_THREAD_SIDE_MAIN);
   luv_callback_send(L, LUV_CB_EVENT, lhandle, argc);
   luv_thread_arg_clear(L, args, LUVF_THREAD_SIDE_MAIN);
-}
-
-LUV_LIBAPI uv_async_t *luv_check_async(lua_State *const L, const int index) {
-  luv_handle_t *const lhandle = (luv_handle_t *)luv_checkudata(L, index, "uv_async");
-  uv_async_t *const async = luv_handle_of(uv_async_t, lhandle);
-
-  luaL_argcheck(L, async->type == UV_ASYNC, index, "expected uv_async handle");
-  return async;
 }
 
 LUV_LUAAPI int luv_new_async(lua_State *const L) {

@@ -53,6 +53,9 @@ typedef struct {
   // auto extra;
 } luv_handle_t;
 
+LUV_LIBAPI luaL_Reg luv_handle_methods[];
+LUV_LIBAPI luaL_Reg luv_handle_functions[];
+
 /* create and populate the metatable for the handle named name */
 LUV_LIBAPI int luv_handle_metatable(lua_State *L, const char *name, const luaL_Reg *methods);
 
@@ -78,13 +81,10 @@ static luv_handle_t *luv_check_handle(lua_State *L, int index);
 #define luv_handle_of(utype, lhandle) ((utype *)((char *)(lhandle) + sizeof(luv_handle_t)))
 
 /* obtain a pointer to the luv_handle_t given a libuv handle type */
-#define luv_handle_from(uhandle) ((luv_handle_t *)((char *)(uhandle) - sizeof(luv_handle_t)))
+#define luv_handle_from(uhandle) ((luv_handle_t *)((char *)(uv_handle_t *)(uhandle) - sizeof(luv_handle_t)))
 
 /* obtain a pointer to any attached extra data given a luv_handle_t */
 #define luv_handle_extra(utype, lhandle) ((char *)(lhandle) + sizeof(luv_handle_t) + sizeof(utype))
-
-LUV_LIBAPI luaL_Reg luv_handle_methods[];
-LUV_LIBAPI luaL_Reg luv_handle_functions[];
 
 /* uv_handle:__tostring(uv_handle) -> string */
 LUV_LUAAPI int luv_handle__tostring(lua_State *L);

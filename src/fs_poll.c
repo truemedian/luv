@@ -25,20 +25,43 @@
 #include "luv.h"
 #include "private.h"
 
-LUV_LIBAPI luaL_Reg luv_fs_poll_methods[] = {
+LUV_DEFAPI luaL_Reg luv_fs_poll_methods[] = {
   {"start", luv_fs_poll_start},
   {"stop", luv_fs_poll_stop},
   {"getpath", luv_fs_poll_getpath},
   {NULL, NULL},
 };
 
-LUV_LIBAPI luaL_Reg luv_fs_poll_functions[] = {
+LUV_DEFAPI luaL_Reg luv_fs_poll_functions[] = {
   {"new_fs_poll", luv_new_fs_poll},
   {"fs_poll_start", luv_fs_poll_start},
   {"fs_poll_stop", luv_fs_poll_stop},
   {"fs_poll_getpath", luv_fs_poll_getpath},
   {NULL, NULL},
 };
+
+LUV_LIBAPI uv_fs_poll_t *luv_check_fs_poll(lua_State *const L, const int index) {
+  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_fs_poll");
+  uv_fs_poll_t *const fs_poll = luv_handle_of(uv_fs_poll_t, lhandle);
+
+  luaL_argcheck(L, fs_poll->type == UV_FS_POLL, index, "expected uv_fs_poll handle");
+  return fs_poll;
+}
+
+LUV_LUAAPI int luv_new_fs_poll(lua_State *L) {
+  const luv_ctx_t *const ctx = luv_context(L);
+
+  luv_handle_t *const lhandle = luv_new_handle(L, UV_FS_POLL, ctx, 0);
+  uv_fs_poll_t *const fs_poll = luv_handle_of(uv_fs_poll_t, lhandle);
+
+  const int ret = uv_fs_poll_init(ctx->loop, fs_poll);
+  if (ret < 0) {
+    lua_pop(L, 1);
+    return luv_error(L, ret);
+  }
+
+  return 1;
+}
 
 LUV_CBAPI void luv_fs_poll_cb(
   uv_fs_poll_t *const fs_poll,
@@ -67,29 +90,6 @@ LUV_CBAPI void luv_fs_poll_cb(
   }
 
   luv_callback_send(L, LUV_CB_EVENT, lhandle, 3);
-}
-
-LUV_LIBAPI uv_fs_poll_t *luv_check_fs_poll(lua_State *const L, const int index) {
-  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_fs_poll");
-  uv_fs_poll_t *const fs_poll = luv_handle_of(uv_fs_poll_t, lhandle);
-
-  luaL_argcheck(L, fs_poll->type == UV_FS_POLL, index, "expected uv_fs_poll handle");
-  return fs_poll;
-}
-
-LUV_LUAAPI int luv_new_fs_poll(lua_State *L) {
-  const luv_ctx_t *const ctx = luv_context(L);
-
-  luv_handle_t *const lhandle = luv_new_handle(L, UV_FS_POLL, ctx, 0);
-  uv_fs_poll_t *const fs_poll = luv_handle_of(uv_fs_poll_t, lhandle);
-
-  const int ret = uv_fs_poll_init(ctx->loop, fs_poll);
-  if (ret < 0) {
-    lua_pop(L, 1);
-    return luv_error(L, ret);
-  }
-
-  return 1;
 }
 
 LUV_LUAAPI int luv_fs_poll_start(lua_State *L) {

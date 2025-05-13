@@ -14,237 +14,312 @@
  *  limitations under the License.
  *
  */
+#include "stream.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+#include <stdlib.h>
+#include <uv.h>
+
+#include "handle.h"
+#include "luv.h"
 #include "private.h"
+#include "request.h"
+#include "util.h"
 
-static uv_stream_t* luv_check_stream(lua_State* L, int index) {
-  int isStream;
-  void *udata;
-  uv_stream_t* handle;
-  // check if the input is a userdata
-  udata = lua_touserdata(L, index);
-  if (!udata) goto fail;
-  // "uv_stream" in the registry is a table structured like so:
-  // {
-  //   [<uv_pipe metatable>] = true,
-  //   [<uv_tcp metatable>] = true,
-  //   [<uv_tty metatable>] = true,
-  // }
-  // so to check that the value at the index is a "uv_stream",
-  // we get its metatable and check that we get `true` back
-  // when looking the metatable up in the "uv_stream" table.
-  lua_getfield(L, LUA_REGISTRYINDEX, "uv_stream");
-  isStream = lua_getmetatable(L, index < 0 ? index - 1 : index);
-  if (!isStream) goto fail;
-  lua_rawget(L, -2);
-  isStream = lua_toboolean(L, -1);
-  lua_pop(L, 2);
-  if (!isStream) goto fail;
-  // cast the userdata to uv_stream_t
-  handle = *(uv_stream_t**)udata;
-  if (!handle->data) goto fail;
-  return handle;
+LUV_DEFAPI luaL_Reg luv_stream_methods[] = {
+  {"shutdown", luv_shutdown},
+  {"listen", luv_listen},
+  {"accept", luv_accept},
+  {"read_start", luv_read_start},
+  {"read_stop", luv_read_stop},
+  {"write", luv_write},
+  {"write2", luv_write2},
+  {"try_write", luv_try_write},
+  {"is_readable", luv_is_readable},
+  {"is_writable", luv_is_writable},
+  {"set_blocking", luv_stream_set_blocking},
+#if LUV_UV_VERSION_GEQ(1, 19, 0)
+  {"get_write_queue_size", luv_stream_get_write_queue_size},
+#endif
+#if LUV_UV_VERSION_GEQ(1, 42, 0)
+  {"try_write2", luv_try_write2},
+#endif
+  {NULL, NULL},
+};
 
-  fail: luaL_argerror(L, index, "Expected uv_stream userdata");
-  return NULL;
-}
+LUV_DEFAPI luaL_Reg luv_stream_functions[] = {
+  {"shutdown", luv_shutdown},
+  {"listen", luv_listen},
+  {"accept", luv_accept},
+  {"read_start", luv_read_start},
+  {"read_stop", luv_read_stop},
+  {"write", luv_write},
+  {"write2", luv_write2},
+  {"try_write", luv_try_write},
+  {"is_readable", luv_is_readable},
+  {"is_writable", luv_is_writable},
+  {"stream_set_blocking", luv_stream_set_blocking},
+#if LUV_UV_VERSION_GEQ(1, 19, 0)
+  {"stream_get_write_queue_size", luv_stream_get_write_queue_size},
+#endif
+#if LUV_UV_VERSION_GEQ(1, 42, 0)
+  {"try_write2", luv_try_write2},
+#endif
+  {NULL, NULL},
+};
 
-static void luv_shutdown_cb(uv_shutdown_t* req, int status) {
-  luv_req_t* data = (luv_req_t*)req->data;
-  lua_State* L = data->ctx->L;
-  luv_status(L, status);
-  luv_fulfill_req(L, (luv_req_t*)req->data, 1);
-  luv_cleanup_req(L, (luv_req_t*)req->data);
-  req->data = NULL;
-}
+/* provides us an address which we guarantee is unique to us to mark stream metatables */
+static char stream_key;
 
-static int luv_shutdown(lua_State* L) {
-  luv_ctx_t* ctx = luv_context(L);
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  int ref = luv_check_continuation(L, 2);
-  uv_shutdown_t* req = (uv_shutdown_t*)lua_newuserdata(L, uv_req_size(UV_SHUTDOWN));
-  int ret;
-  req->data = luv_setup_req(L, ctx, ref);
-  ret = uv_shutdown(req, handle, luv_shutdown_cb);
-  if (ret < 0) {
-    luv_cleanup_req(L, (luv_req_t*)req->data);
-    lua_pop(L, 1);
-    return luv_error(L, ret);
-  }
+LUV_LIBAPI int luv_stream_metatable(lua_State *L, const char *name, const luaL_Reg *methods) {
+  luv_handle_metatable(L, name, methods);
+
+  lua_pushboolean(L, 1);
+  lua_rawsetp(L, -2, &stream_key);
+
+  lua_getfield(L, -1, "__index");
+  luaL_setfuncs(L, luv_stream_methods, 0);
+  lua_pop(L, 1);
+
   return 1;
 }
 
-static void luv_connection_cb(uv_stream_t* handle, int status) {
-  luv_handle_t* data = (luv_handle_t*)handle->data;
-  lua_State* L = data->ctx->L;
-  luv_status(L, status);
-  luv_call_callback(L, (luv_handle_t*)handle->data, LUV_CONNECTION, 1);
+LUV_LIBAPI uv_stream_t *luv_check_stream(lua_State *const L, const int index) {
+  void *userdata = lua_touserdata(L, index);
+  if (userdata == NULL) {
+    luaL_argerror(L, index, "expected uv_stream userdata");
+    return NULL;
+  }
+
+  if (lua_getmetatable(L, index) == 0) {
+    luaL_argerror(L, index, "expected uv_stream userdata");
+    return NULL;
+  }
+
+  lua_rawgetp(L, -1, &stream_key);
+  if (lua_toboolean(L, -1) == 0) {
+    luaL_argerror(L, index, "expected uv_stream userdata");
+    return NULL;
+  }
+
+  lua_pop(L, 2);
+  luv_handle_t *lhandle = *(luv_handle_t **)userdata;
+  return luv_handle_of(uv_stream_t, lhandle);
 }
 
-static int luv_listen(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  int backlog = luaL_checkinteger(L, 2);
-  int ret;
-  luv_check_callback(L, (luv_handle_t*)handle->data, LUV_CONNECTION, 3);
-  ret = uv_listen(handle, backlog, luv_connection_cb);
+LUV_CBAPI void luv_shutdown_cb(uv_shutdown_t *const req, const int status) {
+  luv_req_t *lreq = luv_request_from(req);
+  lua_State *L = lreq->ctx->L;
+
+  luv_status(L, status);
+  luv_fulfill_req(L, lreq, 1);
+  luv_cleanup_req(L, lreq);
+}
+
+LUV_LUAAPI int luv_shutdown(lua_State *const L) {
+  luv_ctx_t *ctx = luv_context(L);
+  uv_stream_t *stream = luv_check_stream(L, 1);
+
+  luv_req_t *lreq = luv_new_request(L, UV_SHUTDOWN, ctx, 2);
+  uv_shutdown_t *shutdown = luv_request_of(uv_shutdown_t, lreq);
+
+  const int ret = uv_shutdown(shutdown, stream, luv_shutdown_cb);
+  if (ret < 0) {
+    luv_cleanup_req(L, lreq);
+    lua_pop(L, 1);
+    return luv_error(L, ret);
+  }
+
+  return 1;
+}
+
+LUV_CBAPI void luv_connection_cb(uv_stream_t *const stream, const int status) {
+  luv_handle_t *lhandle = luv_handle_from(stream);
+  lua_State *L = lhandle->ctx->L;
+
+  luv_status(L, status);
+  luv_callback_send(L, LUV_CB_EVENT, lhandle, 1);
+}
+
+LUV_LUAAPI int luv_listen(lua_State *const L) {
+  uv_stream_t *stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_handle_from(stream);
+  const int backlog = (int)luaL_checkinteger(L, 2);
+
+  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 3);
+  const int ret = uv_listen(stream, backlog, luv_connection_cb);
   return luv_result(L, ret);
 }
 
-static int luv_accept(lua_State* L) {
-  uv_stream_t* server = luv_check_stream(L, 1);
-  uv_stream_t* client = luv_check_stream(L, 2);
+LUV_LUAAPI int luv_accept(lua_State *const L) {
+  uv_stream_t *server = luv_check_stream(L, 1);
+  uv_stream_t *client = luv_check_stream(L, 2);
   int ret = uv_accept(server, client);
   return luv_result(L, ret);
 }
 
-static void luv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+LUV_CBAPI void luv_alloc_cb(uv_handle_t *const handle, const size_t suggested_size, uv_buf_t *const buf) {
   (void)handle;
-  buf->base = (char*)malloc(suggested_size);
-  assert(buf->base);
+  buf->base = (char *)malloc(suggested_size);
   buf->len = suggested_size;
 }
 
-static void luv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf) {
-  luv_handle_t* data = (luv_handle_t*)handle->data;
-  lua_State* L = data->ctx->L;
-  int nargs;
+LUV_CBAPI void luv_read_cb(uv_stream_t *const stream, const ssize_t nread, const uv_buf_t *const buf) {
+  luv_handle_t *lhandle = luv_handle_from(stream);
+  lua_State *L = lhandle->ctx->L;
 
   if (nread > 0) {
     lua_pushnil(L);
     lua_pushlstring(L, buf->base, nread);
-    nargs = 2;
   }
 
   free(buf->base);
-  if (nread == 0) return;
+  if (nread == 0) {
+    return;
+  }
 
   if (nread == UV_EOF) {
-    nargs = 0;
-  }
-  else if (nread < 0) {
-    luv_status(L, nread);
-    nargs = 1;
+    lua_pushnil(L);
+    lua_pushnil(L);
+  } else if (nread < 0) {
+    luv_status(L, (int)nread);
+    lua_pushnil(L);
   }
 
-  luv_call_callback(L, (luv_handle_t*)handle->data, LUV_READ, nargs);
+  luv_callback_send(L, LUV_CB_EVENT, lhandle, 2);
 }
 
-static int luv_read_start(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  int ret;
-  luv_check_callback(L, (luv_handle_t*)handle->data, LUV_READ, 2);
-  ret = uv_read_start(handle, luv_alloc_cb, luv_read_cb);
+LUV_LUAAPI int luv_read_start(lua_State *const L) {
+  uv_stream_t *stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_handle_from(stream);
+
+  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
+  const int ret = uv_read_start(stream, luv_alloc_cb, luv_read_cb);
   return luv_result(L, ret);
 }
 
-static int luv_read_stop(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  int ret = uv_read_stop(handle);
+LUV_LUAAPI int luv_read_stop(lua_State *const L) {
+  uv_stream_t *stream = luv_check_stream(L, 1);
+  const int ret = uv_read_stop(stream);
   return luv_result(L, ret);
 }
 
-static void luv_write_cb(uv_write_t* req, int status) {
-  luv_req_t* data = (luv_req_t*)req->data;
-  lua_State* L = data->ctx->L;
+LUV_CBAPI void luv_write_cb(uv_write_t *const req, const int status) {
+  luv_req_t *lreq = luv_request_from(req);
+  lua_State *L = lreq->ctx->L;
+
   luv_status(L, status);
-  luv_fulfill_req(L, (luv_req_t*)req->data, 1);
-  luv_cleanup_req(L, (luv_req_t*)req->data);
-  req->data = NULL;
+  luv_fulfill_req(L, lreq, 1);
+  luv_cleanup_req(L, lreq);
 }
 
-static int luv_write(lua_State* L) {
-  luv_ctx_t* ctx = luv_context(L);
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  uv_write_t* req;
-  int ret, ref;
-  ref = luv_check_continuation(L, 3);
-  req = (uv_write_t *)lua_newuserdata(L, uv_req_size(UV_WRITE));
-  req->data = (luv_req_t*)luv_setup_req(L, ctx, ref);
-  size_t count;
-  uv_buf_t* bufs = luv_check_bufs(L, 2, &count, (luv_req_t*)req->data);
-  ret = uv_write(req, handle, bufs, count, luv_write_cb);
-  free(bufs);
+LUV_LUAAPI int luv_write(lua_State *const L) {
+  luv_ctx_t *ctx = luv_context(L);
+  uv_stream_t *const stream = luv_check_stream(L, 1);
+
+  luv_req_t *lreq = luv_new_request(L, UV_WRITE, ctx, 3);
+  uv_write_t *const write = luv_request_of(uv_write_t, lreq);
+
+  luv_bufs_t bufs;
+  luv_request_bufs(L, lreq, &bufs, 2);
+
+  const int ret = uv_write(write, stream, bufs.bufs, bufs.bufs_count, luv_write_cb);
+  luv_request_bufs_free(&bufs);
   if (ret < 0) {
-    luv_cleanup_req(L, (luv_req_t*)req->data);
+    luv_cleanup_req(L, lreq);
     lua_pop(L, 1);
     return luv_error(L, ret);
   }
+
   return 1;
 }
 
-static int luv_write2(lua_State* L) {
-  luv_ctx_t* ctx = luv_context(L);
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  uv_write_t* req;
-  int ret, ref;
-  uv_stream_t* send_handle;
-  send_handle = luv_check_stream(L, 3);
-  ref = luv_check_continuation(L, 4);
-  req = (uv_write_t *)lua_newuserdata(L, uv_req_size(UV_WRITE));
-  req->data = luv_setup_req(L, ctx, ref);
-  size_t count;
-  uv_buf_t* bufs = luv_check_bufs(L, 2, &count, (luv_req_t*)req->data);
-  ret = uv_write2(req, handle, bufs, count, send_handle, luv_write_cb);
-  free(bufs);
+LUV_LUAAPI int luv_write2(lua_State *const L) {
+  luv_ctx_t *ctx = luv_context(L);
+  uv_stream_t *stream = luv_check_stream(L, 1);
+
+  uv_stream_t *const send_handle = luv_check_stream(L, 3);
+
+  luv_req_t *lreq = luv_new_request(L, UV_WRITE, ctx, 4);
+  uv_write_t *const write = luv_request_of(uv_write_t, lreq);
+
+  luv_bufs_t bufs;
+  luv_request_bufs(L, lreq, &bufs, 2);
+
+  const int ret = uv_write2(write, stream, bufs.bufs, bufs.bufs_count, send_handle, luv_write_cb);
+  luv_request_bufs_free(&bufs);
   if (ret < 0) {
-    luv_cleanup_req(L, (luv_req_t*)req->data);
+    luv_cleanup_req(L, lreq);
     lua_pop(L, 1);
     return luv_error(L, ret);
   }
+
   return 1;
 }
 
-static int luv_try_write(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  int err_or_num_bytes;
-  size_t count;
-  uv_buf_t* bufs = luv_check_bufs_noref(L, 2, &count);
-  err_or_num_bytes = uv_try_write(handle, bufs, count);
-  free(bufs);
-  if (err_or_num_bytes < 0) return luv_error(L, err_or_num_bytes);
-  lua_pushinteger(L, err_or_num_bytes);
+LUV_LUAAPI int luv_try_write(lua_State *const L) {
+  uv_stream_t *stream = luv_check_stream(L, 1);
+
+  luv_bufs_t bufs;
+  luv_request_bufs(L, NULL, &bufs, 2);
+
+  const int nwrite = uv_try_write(stream, bufs.bufs, bufs.bufs_count);
+  luv_request_bufs_free(&bufs);
+
+  if (nwrite < 0) {
+    return luv_error(L, nwrite);
+  }
+  lua_pushinteger(L, nwrite);
   return 1;
 }
 
-#if LUV_UV_VERSION_GEQ(1, 42, 0)
-static int luv_try_write2(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  int err_or_num_bytes;
-  size_t count;
-  uv_stream_t* send_handle = luv_check_stream(L, 3);
-  uv_buf_t* bufs = luv_check_bufs_noref(L, 2, &count);
-  err_or_num_bytes = uv_try_write2(handle, bufs, count, send_handle);
-  free(bufs);
-  if (err_or_num_bytes < 0) return luv_error(L, err_or_num_bytes);
-  lua_pushinteger(L, err_or_num_bytes);
-  return 1;
-}
-#endif
-
-static int luv_is_readable(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  lua_pushboolean(L, uv_is_readable(handle));
+LUV_LUAAPI int luv_is_readable(lua_State *const L) {
+  uv_stream_t *const stream = luv_check_stream(L, 1);
+  lua_pushboolean(L, uv_is_readable(stream));
   return 1;
 }
 
-static int luv_is_writable(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  lua_pushboolean(L, uv_is_writable(handle));
+LUV_LUAAPI int luv_is_writable(lua_State *const L) {
+  uv_stream_t *const stream = luv_check_stream(L, 1);
+  lua_pushboolean(L, uv_is_writable(stream));
   return 1;
 }
 
-static int luv_stream_set_blocking(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  int blocking, ret;
+LUV_LUAAPI int luv_stream_set_blocking(lua_State *const L) {
+  uv_stream_t *const stream = luv_check_stream(L, 1);
+
   luaL_checktype(L, 2, LUA_TBOOLEAN);
-  blocking = lua_toboolean(L, 2);
-  ret = uv_stream_set_blocking(handle, blocking);
+  const int blocking = lua_toboolean(L, 2);
+
+  const int ret = uv_stream_set_blocking(stream, blocking);
   return luv_result(L, ret);
 }
 
 #if LUV_UV_VERSION_GEQ(1, 19, 0)
-static int luv_stream_get_write_queue_size(lua_State* L) {
-  uv_stream_t* handle = luv_check_stream(L, 1);
-  lua_pushinteger(L, uv_stream_get_write_queue_size(handle));
+LUV_LUAAPI int luv_stream_get_write_queue_size(lua_State *const L) {
+  uv_stream_t *const stream = luv_check_stream(L, 1);
+  lua_pushinteger(L, (lua_Integer)uv_stream_get_write_queue_size(stream));
+  return 1;
+}
+#endif
+
+#if LUV_UV_VERSION_GEQ(1, 42, 0)
+LUV_LUAAPI int luv_try_write2(lua_State *const L) {
+  uv_stream_t *const stream = luv_check_stream(L, 1);
+
+  luv_bufs_t bufs;
+  luv_request_bufs(L, NULL, &bufs, 2);
+
+  uv_stream_t *const send_handle = luv_check_stream(L, 3);
+
+  const int nwrite = uv_try_write2(stream, bufs.bufs, bufs.bufs_count, send_handle);
+  luv_request_bufs_free(&bufs);
+
+  if (nwrite < 0) {
+    return luv_error(L, nwrite);
+  }
+  lua_pushinteger(L, nwrite);
   return 1;
 }
 #endif

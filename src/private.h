@@ -3,6 +3,7 @@
 
 #define LUV_LUAAPI extern
 #define LUV_LIBAPI extern
+#define LUV_DEFAPI
 #define LUV_CBAPI static
 
 #include <lua.h>
