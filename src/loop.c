@@ -15,6 +15,7 @@
  *
  */
 #include "private.h"
+#include "handle.h"
 
 static int luv_loop_close(lua_State* L) {
   int ret = uv_loop_close(luv_loop(L));
@@ -97,11 +98,17 @@ static int luv_update_time(lua_State* L) {
 static void luv_walk_cb(uv_handle_t* handle, void* arg) {
   luv_ctx_t* ctx = (luv_ctx_t*)arg;
   lua_State* L = ctx->L;
-  luv_handle_t* data = (luv_handle_t*)handle->data;
+  luv_handle_t *lhandle = luv_handle_from(handle);
+
+  if (lhandle->ctx != ctx) {
+    // This handle is not from this context
+    lua_pop(L, 2);
+    return;
+  }
 
   // Skip foreign handles (shared event loop)
   lua_rawgeti(L, LUA_REGISTRYINDEX, ctx->ht_ref);
-  lua_rawgetp(L, -1, data);
+  lua_rawgetp(L, -1, lhandle);
   if (lua_isnil(L, -1)) {
     lua_pop(L, 2);
     return;
@@ -109,11 +116,11 @@ static void luv_walk_cb(uv_handle_t* handle, void* arg) {
 
   // Sanity check
   // Most invalid values are large and refs are small, 0x1000000 is arbitrary.
-  assert(data && data->ref < 0x1000000);
+  assert(lhandle && lhandle->ref < 0x1000000);
 
   lua_pushvalue(L, 1);           // Copy the function
-  luv_find_handle(L, data);      // Get the userdata
-  data->ctx->cb_pcall(L, 1, 0, 0);  // Call the function
+  luv_handle_push(L, lhandle);      // Get the userdata
+  lhandle->ctx->cb_pcall(L, 1, 0, 0);  // Call the function
 }
 
 static int luv_walk(lua_State* L) {
