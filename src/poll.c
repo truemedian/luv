@@ -17,7 +17,7 @@
 #include "private.h"
 
 static uv_poll_t* luv_check_poll(lua_State* L, int index) {
-  uv_poll_t* handle = (uv_poll_t*)luv_checkudata(L, index, "uv_poll");
+  uv_poll_t* handle = (uv_poll_t*)luv_checkuserdata(L, index, "uv_poll");
   luaL_argcheck(L, handle->type == UV_POLL && handle->data, index, "Expected uv_poll_t");
   return handle;
 }

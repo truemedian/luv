@@ -10,7 +10,9 @@ Checks:
 - 'performance-*'
 - 'readability-*'
 - 'portability-*'
+- '-clang-diagnostic-undefined-internal'
 - '-google-readability-casting'
+- '-google-readability-braces-around-statements'
 - '-llvm-header-guard'
 - '-misc-use-anonymous-namespace'
 - '-modernize-use-trailing-return-type'
@@ -18,9 +20,9 @@ Checks:
 - '-modernize-deprecated-headers'
 - '-modernize-use-nullptr'
 - '-modernize-avoid-c-arrays'
-- '-clang-diagnostic-undefined-internal'
 - '-readability-function-cognitive-complexity'
 ExtraArgs: ['-Ideps/libuv/include']
 CheckOptions:
   readability-identifier-length.IgnoredParameterNames: '^L$'
   readability-identifier-length.IgnoredVariableNames: '^(L|fd)$'
+  readability-braces-around-statements.ShortStatementLines: 3

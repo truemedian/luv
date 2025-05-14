@@ -17,7 +17,7 @@
 #include "private.h"
 
 static uv_signal_t* luv_check_signal(lua_State* L, int index) {
-  uv_signal_t* handle = (uv_signal_t*)luv_checkudata(L, index, "uv_signal");
+  uv_signal_t* handle = (uv_signal_t*)luv_checkuserdata(L, index, "uv_signal");
   luaL_argcheck(L, handle->type == UV_SIGNAL && handle->data, index, "Expected uv_signal_t");
   return handle;
 }

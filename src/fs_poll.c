@@ -41,7 +41,7 @@ LUV_DEFAPI luaL_Reg luv_fs_poll_functions[] = {
 };
 
 LUV_LIBAPI uv_fs_poll_t *luv_check_fs_poll(lua_State *const L, const int index) {
-  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_fs_poll");
+  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkuserdata(L, index, "uv_fs_poll");
   uv_fs_poll_t *const fs_poll = luv_handle_of(uv_fs_poll_t, lhandle);
 
   luaL_argcheck(L, fs_poll->type == UV_FS_POLL, index, "expected uv_fs_poll handle");
@@ -102,13 +102,13 @@ LUV_LUAAPI int luv_fs_poll_start(lua_State *L) {
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 4);
 
   const int ret = uv_fs_poll_start(fs_poll, luv_fs_poll_cb, path, interval);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_fs_poll_stop(lua_State *L) {
   uv_fs_poll_t *handle = luv_check_fs_poll(L, 1);
   const int ret = uv_fs_poll_stop(handle);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_fs_poll_getpath(lua_State *const L) {

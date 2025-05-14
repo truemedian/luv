@@ -38,7 +38,7 @@ LUV_DEFAPI luaL_Reg luv_idle_functions[] = {
 };
 
 LUV_LIBAPI uv_idle_t *luv_idle_check(lua_State *const L, const int index) {
-  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_idle");
+  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkuserdata(L, index, "uv_idle");
   uv_idle_t *const idle = luv_handle_of(uv_idle_t, lhandle);
 
   luaL_argcheck(L, idle->type == UV_IDLE, index, "expected uv_idle handle");
@@ -74,11 +74,11 @@ LUV_LUAAPI int luv_idle_start(lua_State *const L) {
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
 
   const int ret = uv_idle_start(idle, luv_idle_cb);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_idle_stop(lua_State *const L) {
   uv_idle_t *const idle = luv_idle_check(L, 1);
   const int ret = uv_idle_stop(idle);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }

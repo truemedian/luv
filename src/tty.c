@@ -17,7 +17,7 @@
 #include "private.h"
 
 static uv_tty_t* luv_check_tty(lua_State* L, int index) {
-  uv_tty_t* handle = (uv_tty_t*)luv_checkudata(L, index, "uv_tty");
+  uv_tty_t* handle = (uv_tty_t*)luv_checkuserdata(L, index, "uv_tty");
   luaL_argcheck(L, handle->type == UV_TTY && handle->data, index, "Expected uv_tty_t");
   return handle;
 }

@@ -33,10 +33,6 @@ LUV_LIBAPI luv_req_t *luv_new_request(
   const size_t attached_size = uv_req_size(type);
 
   luv_req_t *const lreq = (luv_req_t *)luv_newuserdata(L, sizeof(luv_req_t) + attached_size);
-  if (lreq == NULL) {
-    luaL_error(L, "out of memory");
-    return NULL;
-  }
 
   switch (type) {
 #define XX(upper, lower)                \
@@ -46,7 +42,7 @@ LUV_LIBAPI luv_req_t *luv_new_request(
     UV_REQ_TYPE_MAP(XX)
 #undef XX
     default:
-      luaL_error(L, "unknown request type");
+      luv_error(L, "unknown request type");
   }
 
   // callback can either be nil or callable
@@ -84,6 +80,13 @@ LUV_LIBAPI void luv_fulfill_req(lua_State *const L, luv_req_t *const lreq, const
 }
 
 LUV_LIBAPI void luv_cleanup_req(lua_State *const L, luv_req_t *const lreq) {
+  // remove the metatable from the request userdata to avoid garbage collection
+  if (lua_rawgeti(L, LUA_REGISTRYINDEX, lreq->ref) != LUA_TNIL) {
+    lua_pushnil(L);
+    lua_setmetatable(L, -2);
+  }
+  lua_pop(L, 1);
+
   luaL_unref(L, LUA_REGISTRYINDEX, lreq->ref);
   luaL_unref(L, LUA_REGISTRYINDEX, lreq->callback);
   if (lreq->data == LUA_REFNIL) {
@@ -99,12 +102,7 @@ LUV_LIBAPI void luv_cleanup_req(lua_State *const L, luv_req_t *const lreq) {
   free(lreq);
 }
 
-static void luv_prepare_bufs(
-  lua_State *const L,
-  luv_req_t *const lreq,
-  luv_bufs_t *const bufs,
-  const int index
-) {
+static void luv_prepare_bufs(lua_State *const L, luv_req_t *const lreq, luv_bufs_t *const bufs, const int index) {
   if (bufs->bufs_count > LUV_BUFS_PREPARED) {
     bufs->bufs = (uv_buf_t *)calloc(bufs->bufs_count, sizeof(uv_buf_t));
   } else {
@@ -119,12 +117,8 @@ static void luv_prepare_bufs(
 
   for (size_t i = 0; i < bufs->bufs_count; ++i) {
     lua_rawgeti(L, index, (lua_Integer)i + 1);
-    if (!lua_isstring(L, -1)) {
-      luaL_argerror(
-        L, index, lua_pushfstring(L, "expected string or table of strings, found %s in table", luaL_typename(L, -1))
-      );
-      return;
-    }
+    if (!lua_isstring(L, -1))
+      luv_argerror(L, index, "expected string or table of strings, found %s in table", luaL_typename(L, -1));
 
     uv_buf_t *const buf = &bufs->bufs[i];
     buf->base = (char *)lua_tolstring(L, -1, &buf->len);
@@ -137,12 +131,7 @@ static void luv_prepare_bufs(
   }
 }
 
-static void luv_prepare_buf(
-  lua_State *const L,
-  luv_req_t *const lreq,
-  luv_bufs_t *const bufs,
-  const int index
-) {
+static void luv_prepare_buf(lua_State *const L, luv_req_t *const lreq, luv_bufs_t *const bufs, const int index) {
   bufs->bufs_count = 1;
   bufs->bufs = &bufs->buf_buffer[0];
 
@@ -155,27 +144,16 @@ static void luv_prepare_buf(
   }
 }
 
-LUV_LIBAPI void luv_request_bufs(
-  lua_State *const L,
-  luv_req_t *const lreq,
-  luv_bufs_t *const bufs,
-  const int index
-) {
+LUV_LIBAPI void luv_request_bufs(lua_State *const L, luv_req_t *const lreq, luv_bufs_t *const bufs, const int index) {
   if (lua_istable(L, index)) {
     bufs->bufs_count = lua_rawlen(L, index);
-    if (bufs->bufs_count == 0) {
-      luaL_argerror(L, index, "expected string or table of strings, found empty table");
-      return;
-    }
+    if (bufs->bufs_count == 0)
+      luv_argerror(L, index, "expected string or table of strings, found empty table");
 
     if (bufs->bufs_count == 1) {
       lua_rawgeti(L, index, 1);
-      if (!lua_isstring(L, -1)) {
-        luaL_argerror(
-          L, index, lua_pushfstring(L, "expected string or table of strings, found %s in table", luaL_typename(L, -1))
-        );
-        return;
-      }
+      if (!lua_isstring(L, -1))
+        luv_argerror(L, index, "expected string or table of strings, found %s in table", luaL_typename(L, -1));
 
       luv_prepare_buf(L, lreq, bufs, -1);
       lua_pop(L, 1);
@@ -186,12 +164,11 @@ LUV_LIBAPI void luv_request_bufs(
   } else if (lua_isstring(L, index)) {
     luv_prepare_buf(L, lreq, bufs, index);
   } else {
-    luaL_argerror(L, index, lua_pushfstring(L, "expected string or table of strings, got %s", luaL_typename(L, index)));
+    luv_typeerror(L, index, "string or table of strings");
   }
 }
 
 LUV_LIBAPI void luv_request_bufs_free(luv_bufs_t *const bufs) {
-  if (bufs->bufs_count > LUV_BUFS_PREPARED) {
+  if (bufs->bufs_count > LUV_BUFS_PREPARED)
     free(bufs->bufs);
-  }
 }

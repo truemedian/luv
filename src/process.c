@@ -24,7 +24,7 @@ static int luv_disable_stdio_inheritance(lua_State* L) {
 }
 
 static uv_process_t* luv_check_process(lua_State* L, int index) {
-  uv_process_t* handle = (uv_process_t*)luv_checkudata(L, index, "uv_process");
+  uv_process_t* handle = (uv_process_t*)luv_checkuserdata(L, index, "uv_process");
   luaL_argcheck(L, handle->type == UV_PROCESS && handle->data, index, "Expected uv_process_t");
   return handle;
 }

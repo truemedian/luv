@@ -37,17 +37,17 @@ static int luv_traceback (lua_State *L) {
   return 1;
 }
 
-static void* luv_newuserdata(lua_State* L, size_t sz) {
-  void* handle = malloc(sz);
-  if (handle) {
-    *(void**)lua_newuserdata(L, sizeof(void*)) = handle;
-  }
-  return handle;
-}
+// static void* luv_newuserdata(lua_State* L, size_t sz) {
+//   void* handle = malloc(sz);
+//   if (handle) {
+//     *(void**)lua_newuserdata(L, sizeof(void*)) = handle;
+//   }
+//   return handle;
+// }
 
-static void* luv_checkudata(lua_State* L, int ud, const char* tname) {
-  return *(void**) luaL_checkudata(L, ud, tname);
-}
+// static void* luv_checkudata(lua_State* L, int ud, const char* tname) {
+//   return *(void**) luaL_checkudata(L, ud, tname);
+// }
 
 void luv_stack_dump(lua_State* L, const char* name) {
   int i, l;

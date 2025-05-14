@@ -65,7 +65,7 @@ LUV_LUAAPI int luv_set_process_title(lua_State *const L) {
   const char *title = luaL_checkstring(L, 1);
 
   const int ret = uv_set_process_title(title);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_resident_set_memory(lua_State *const L) {
@@ -290,7 +290,7 @@ static int luv_cwd(lua_State *const L) {
 
 static int luv_chdir(lua_State *const L) {
   int ret = uv_chdir(luaL_checkstring(L, 1));
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 #if LUV_UV_VERSION_GEQ(1, 9, 0)
@@ -682,7 +682,7 @@ static int luv_random(lua_State *L) {
       lua_pop(L, 1);
       return luv_pushfail(L, ret);
     }
-    return luv_pushresult(L, ret);
+    return luv_pushresult(L, ret, LUA_TNUMBER);
   }
 }
 #endif

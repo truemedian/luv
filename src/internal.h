@@ -82,8 +82,16 @@ LUV_LIBAPI noreturn void luv_typeerror(lua_State *L, int arg, const char *tname)
 
 LUV_LIBAPI int luv_pushfail(lua_State *L, int status);
 
-LUV_LIBAPI int luv_pushresult(lua_State *L, int status);
+LUV_LIBAPI int luv_pushresult(lua_State *L, int status, int type);
 
 LUV_LIBAPI int luv_pushstatus(lua_State *L, int status);
+
+LUV_LIBAPI int luv_iscallable(lua_State *L, int index);
+
+LUV_LIBAPI void luv_checkcallable(lua_State *L, int index);
+
+LUV_LIBAPI void *luv_newuserdata(lua_State *L, size_t sz);
+
+LUV_LIBAPI void *luv_checkuserdata(lua_State *L, int idx, const char *tname);
 
 #endif  // LUV_INTERNAL_H

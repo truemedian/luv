@@ -60,7 +60,6 @@ LUV_LUAAPI int luv_metrics_info(lua_State *L) {
 
   lua_pushinteger(L, (lua_Integer)metrics.events_waiting);
   lua_setfield(L, -2, "events_waiting");
-
   return 1;
 }
 #endif

@@ -42,7 +42,7 @@ LUV_DEFAPI luaL_Reg luv_fs_event_functions[] = {
 };
 
 LUV_LIBAPI uv_fs_event_t *luv_check_fs_event(lua_State *const L, const int index) {
-  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_fs_event");
+  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkuserdata(L, index, "uv_fs_event");
   uv_fs_event_t *const fs_event = luv_handle_of(uv_fs_event_t, lhandle);
 
   luaL_argcheck(L, fs_event->type == UV_FS_EVENT, index, "expected uv_fs_event handle");
@@ -94,19 +94,16 @@ LUV_LUAAPI int luv_fs_event_start(lua_State *const L) {
     luaL_checktype(L, 3, LUA_TTABLE);
 
     lua_getfield(L, 3, "watch_entry");
-    if (lua_toboolean(L, -1) != 0) {
+    if (lua_toboolean(L, -1) != 0)
       flags |= UV_FS_EVENT_WATCH_ENTRY;
-    }
 
     lua_getfield(L, 3, "stat");
-    if (lua_toboolean(L, -1) != 0) {
+    if (lua_toboolean(L, -1) != 0)
       flags |= UV_FS_EVENT_STAT;
-    }
 
     lua_getfield(L, 3, "recursive");
-    if (lua_toboolean(L, -1) != 0) {
+    if (lua_toboolean(L, -1) != 0)
       flags |= UV_FS_EVENT_RECURSIVE;
-    }
 
     lua_pop(L, 3);
   }
@@ -114,13 +111,13 @@ LUV_LUAAPI int luv_fs_event_start(lua_State *const L) {
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 4);
 
   const int ret = uv_fs_event_start(fs_event, luv_fs_event_cb, path, flags);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_fs_event_stop(lua_State *const L) {
   uv_fs_event_t *fs_event = luv_check_fs_event(L, 1);
   const int ret = uv_fs_event_stop(fs_event);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_fs_event_getpath(lua_State *const L) {
@@ -130,9 +127,8 @@ LUV_LUAAPI int luv_fs_event_getpath(lua_State *const L) {
   char buf[2 * PATH_MAX];
 
   const int ret = uv_fs_event_getpath(fs_event, buf, &len);
-  if (ret < 0) {
+  if (ret < 0)
     return luv_pushfail(L, ret);
-  }
 
   lua_pushlstring(L, buf, len);
   return 1;

@@ -37,35 +37,29 @@ struct constant {
 };
 
 static const struct constant constants[] = {
-  // file open flags O_*
-  {"O_RDONLY", O_RDONLY},
-  {"O_WRONLY", O_WRONLY},
-  {"O_RDWR", O_RDWR},
-  {"O_APPEND", O_APPEND},
-  {"O_CREAT", O_CREAT},
-  {"O_EXCL", O_EXCL},
-  {"O_TRUNC", O_TRUNC},
+  // file access flags *_OK
   {"R_OK", R_OK},
   {"W_OK", W_OK},
   {"X_OK", X_OK},
   {"F_OK", F_OK},
-#ifdef O_DSYNC
-  {"O_DSYNC", O_DSYNC},
-#endif
-#ifdef O_EXLOCK
-  {"O_EXLOCK", O_EXLOCK},
-#endif
-#ifdef O_NOCTTY
-  {"O_NOCTTY", O_NOCTTY},
-#endif
-#ifdef O_NONBLOCK
-  {"O_NONBLOCK", O_NONBLOCK},
-#endif
+
+  // file open flags O_*
+  {"O_APPEND", UV_FS_O_APPEND},
+  {"O_CREAT", UV_FS_O_CREAT},
+  {"O_DIRECT", UV_FS_O_DIRECT},
+  {"O_DSYNC", UV_FS_O_DSYNC},
+  {"O_EXCL", UV_FS_O_EXCL},
+  {"O_EXLOCK", UV_FS_O_EXLOCK},
+  {"O_RDONLY", UV_FS_O_RDONLY},
+  {"O_NOCTTY", UV_FS_O_NOCTTY},
+  {"O_NOFOLLOW", UV_FS_O_NOFOLLOW},
+  {"O_NONBLOCK", UV_FS_O_NONBLOCK},
+  {"O_RDWR", UV_FS_O_RDWR},
+  {"O_SYNC", UV_FS_O_SYNC},
+  {"O_TRUNC", UV_FS_O_TRUNC},
+  {"O_WRONLY", UV_FS_O_WRONLY},
 #ifdef O_RSYNC
   {"O_RSYNC", O_RSYNC},
-#endif
-#ifdef O_SYNC
-  {"O_SYNC", O_SYNC},
 #endif
 
   // addrinfo flags AI_*

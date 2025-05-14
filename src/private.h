@@ -39,8 +39,8 @@ static int luv_check_continuation(lua_State* L, int index);
 // static void luv_cleanup_req(lua_State* L, luv_req_t* data);
 
 /* From handle.c */
-static void* luv_checkudata(lua_State* L, int ud, const char* tname);
-static void* luv_newuserdata(lua_State* L, size_t sz);
+// static void* luv_checkudata(lua_State* L, int ud, const char* tname);
+// static void* luv_newuserdata(lua_State* L, size_t sz);
 
 
 /* From misc.c */

@@ -38,7 +38,7 @@ LUV_DEFAPI luaL_Reg luv_check_functions[] = {
 };
 
 LUV_LIBAPI uv_check_t *luv_check_check(lua_State *const L, const int index) {
-  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkudata(L, index, "uv_check");
+  const luv_handle_t *const lhandle = (const luv_handle_t *)luv_checkuserdata(L, index, "uv_check");
   uv_check_t *const check = luv_handle_of(uv_check_t, lhandle);
 
   luaL_argcheck(L, check->type == UV_CHECK, index, "expected uv_check handle");
@@ -71,14 +71,14 @@ LUV_LUAAPI int luv_check_start(lua_State *const L) {
   uv_check_t *const check = luv_check_check(L, 1);
   luv_handle_t *const lhandle = luv_handle_from(check);
 
-  luv_callback_prep(LUV_CB_EVENT, lhandle, 2);
+  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
 
   const int ret = uv_check_start(check, luv_check_cb);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_check_stop(lua_State *const L) {
   uv_check_t *const check = luv_check_check(L, 1);
   const int ret = uv_check_stop(check);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }

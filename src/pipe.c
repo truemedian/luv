@@ -17,7 +17,7 @@
 #include "private.h"
 
 static uv_pipe_t* luv_check_pipe(lua_State* L, int index) {
-  uv_pipe_t* handle = (uv_pipe_t*)luv_checkudata(L, index, "uv_pipe");
+  uv_pipe_t* handle = (uv_pipe_t*)luv_checkuserdata(L, index, "uv_pipe");
   luaL_argcheck(L, handle->type == UV_NAMED_PIPE && handle->data, index, "Expected uv_pipe_t");
   return handle;
 }

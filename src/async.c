@@ -25,6 +25,7 @@
 #include "lthreadpool.h"
 #include "luv.h"
 #include "private.h"
+#include "internal.h"
 
 LUV_DEFAPI luaL_Reg luv_async_methods[] = {
   {"send", luv_async_send},
@@ -38,7 +39,7 @@ LUV_DEFAPI luaL_Reg luv_async_functions[] = {
 };
 
 LUV_LIBAPI uv_async_t *luv_check_async(lua_State *const L, const int index) {
-  luv_handle_t *const lhandle = (luv_handle_t *)luv_checkudata(L, index, "uv_async");
+  luv_handle_t *const lhandle = (luv_handle_t *)luv_checkuserdata(L, index, "uv_async");
   uv_async_t *const async = luv_handle_of(uv_async_t, lhandle);
 
   luaL_argcheck(L, async->type == UV_ASYNC, index, "expected uv_async handle");
@@ -80,5 +81,5 @@ LUV_LUAAPI int luv_async_send(lua_State *const L) {
   luv_thread_arg_set(L, args, 2, lua_gettop(L), LUVF_THREAD_MODE_ASYNC | LUVF_THREAD_SIDE_CHILD);
   const int ret = uv_async_send(async);
   luv_thread_arg_clear(L, args, LUVF_THREAD_SIDE_CHILD);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }

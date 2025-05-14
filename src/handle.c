@@ -24,8 +24,8 @@
 #include <string.h>
 #include <uv.h>
 
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
 
 LUV_DEFAPI luaL_Reg luv_handle_methods[] = {
   {"close", luv_close},
@@ -87,12 +87,7 @@ LUV_LIBAPI luv_handle_t *luv_new_handle(
   const size_t extra_sz
 ) {
   const size_t attached_size = uv_handle_size(type) + extra_sz;
-
   luv_handle_t *const lhandle = (luv_handle_t *)luv_newuserdata(L, sizeof(luv_handle_t) + attached_size);
-  if (lhandle == NULL) {
-    luaL_error(L, "out of memory");
-    return NULL;
-  }
 
   switch (type) {
 #define XX(upper, lower)                \
@@ -102,7 +97,7 @@ LUV_LIBAPI luv_handle_t *luv_new_handle(
     UV_HANDLE_TYPE_MAP(XX)
 #undef XX
     default:
-      luaL_error(L, "unknown handle type");
+      luv_error(L, "unknown handle type");
   }
 
   lua_pushvalue(L, -1);
@@ -121,10 +116,7 @@ LUV_LIBAPI luv_handle_t *luv_new_handle(
 }
 
 LUV_LIBAPI void luv_handle_unref(lua_State *const L, luv_handle_t *const data) {
-  if (L != data->ctx->L) {
-    luaL_error(L, "luv_handle_push: invalid lua state");
-    return;
-  }
+  luv_assert(L, L == data->ctx->L);
 
   luaL_unref(L, LUA_REGISTRYINDEX, data->ref);
   luaL_unref(L, LUA_REGISTRYINDEX, data->callbacks[0]);
@@ -136,11 +128,7 @@ LUV_LIBAPI void luv_handle_unref(lua_State *const L, luv_handle_t *const data) {
 }
 
 LUV_LIBAPI void luv_handle_push(lua_State *const L, luv_handle_t *const data) {
-  if (L != data->ctx->L) {
-    luaL_error(L, "invalid lua state");
-    return;
-  }
-
+  luv_assert(L, L == data->ctx->L);
   lua_rawgeti(L, LUA_REGISTRYINDEX, data->ref);
 }
 
@@ -150,10 +138,7 @@ LUV_LIBAPI void luv_callback_prep(
   luv_handle_t *const data,
   int const index
 ) {
-  if (L != data->ctx->L) {
-    luaL_error(L, "invalid lua state");
-    return;
-  }
+  luv_assert(L, L == data->ctx->L);
 
   luv_check_callable(L, index);
   luaL_unref(L, LUA_REGISTRYINDEX, data->callbacks[what]);
@@ -167,43 +152,34 @@ LUV_LIBAPI void luv_callback_send(
   const luv_handle_t *const data,
   int const nargs
 ) {
-  if (L != data->ctx->L) {
-    luaL_error(L, "invalid lua state");
-    return;
-  }
+  luv_assert(L, L == data->ctx->L);
 
   const int ref = data->callbacks[what];
   if (ref == LUA_NOREF) {
     lua_pop(L, nargs);
-  } else {
-    // fetch the callback and insert it before any arguments
-    lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-    if (nargs != 0) {
-      lua_insert(L, -1 - nargs);
-    }
-
-    const luv_ctx_t *const ctx = data->ctx;
-    ctx->cb_pcall(L, nargs, 0, 0);
+    return;
   }
+
+  // fetch the callback and insert it before any arguments
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+  if (nargs != 0)
+    lua_insert(L, -1 - nargs);
+
+  const luv_ctx_t *const ctx = data->ctx;
+  ctx->cb_pcall(L, nargs, 0, 0);
 }
 
 LUV_LIBAPI luv_handle_t *luv_check_handle(lua_State *const L, const int index) {
   void *userdata = lua_touserdata(L, index);
-  if (userdata == NULL) {
-    luaL_argerror(L, index, "expected uv_handle userdata");
-    return NULL;
-  }
+  if (userdata == NULL)
+    luv_typeerror(L, index, "uv_handle");
 
-  if (lua_getmetatable(L, index) == 0) {
-    luaL_argerror(L, index, "expected uv_handle userdata");
-    return NULL;
-  }
+  if (lua_getmetatable(L, index) == 0)
+    luv_typeerror(L, index, "uv_handle");
 
   lua_rawgetp(L, -1, &handle_key);
-  if (lua_toboolean(L, -1) == 0) {
-    luaL_argerror(L, index, "expected uv_handle userdata");
-    return NULL;
-  }
+  if (lua_toboolean(L, -1) == 0)
+    luv_typeerror(L, index, "uv_handle");
 
   lua_pop(L, 2);
   return *(luv_handle_t **)userdata;
@@ -262,25 +238,24 @@ LUV_CBAPI void luv_close_cb(uv_handle_t *const handle) {
   luv_handle_t *const lhandle = luv_handle_from(handle);
   lua_State *L = lhandle->ctx->L;
 
-  if (lhandle->ref != LUA_NOREF) {
-    luv_callback_send(L, LUV_CB_CLOSE, lhandle, 0);
-    luv_handle_unref(L, lhandle);
-  } else {
-    free(handle);
+  if (lhandle->ref == LUA_NOREF) {
+    free(lhandle);
+    return;
   }
+
+  luv_callback_send(L, LUV_CB_CLOSE, lhandle, 0);
+  luv_handle_unref(L, lhandle);
 }
 
 LUV_LUAAPI int luv_close(lua_State *L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
-  if (uv_is_closing(handle) != 0) {
-    luaL_error(L, "handle %p is already closing", handle);
-  }
+  if (uv_is_closing(handle) != 0)
+    luv_error(L, "handle %p is already closing", handle);
 
-  if (!lua_isnoneornil(L, 2)) {
+  if (!lua_isnoneornil(L, 2))
     luv_callback_prep(L, LUV_CB_CLOSE, lhandle, 2);
-  }
 
   uv_close(handle, luv_close_cb);
   return 0;
@@ -291,9 +266,8 @@ LUV_LUAAPI int luv_is_active(lua_State *const L) {
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
   const int ret = uv_is_active(handle);
-  if (ret < 0) {
+  if (ret < 0)
     return luv_pushfail(L, ret);
-  }
   lua_pushboolean(L, ret);
   return 1;
 }
@@ -303,11 +277,7 @@ LUV_LUAAPI int luv_is_closing(lua_State *const L) {
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
   const int ret = uv_is_closing(handle);
-  if (ret < 0) {
-    return luv_pushfail(L, ret);
-  }
-  lua_pushboolean(L, ret);
-  return 1;
+  return luv_pushresult(L, ret, LUA_TBOOLEAN);
 }
 
 LUV_LUAAPI int luv_ref(lua_State *const L) {
@@ -345,7 +315,7 @@ LUV_LUAAPI int luv_send_buffer_size(lua_State *const L) {
 
   if (value != 0) {  // set buffer size
     const int ret = uv_send_buffer_size(handle, &value);
-    return luv_pushresult(L, ret);
+    return luv_pushresult(L, ret, LUA_TNUMBER);
   }
 
   // get buffer size
@@ -364,7 +334,7 @@ LUV_LUAAPI int luv_recv_buffer_size(lua_State *const L) {
 
   if (value != 0) {  // set buffer size
     const int ret = uv_recv_buffer_size(handle, &value);
-    return luv_pushresult(L, ret);
+    return luv_pushresult(L, ret, LUA_TNUMBER);
   }
 
   // get buffer size

@@ -12,3 +12,7 @@ BinPackParameters: false
 
 DerivePointerAlignment: false
 PointerAlignment: Right
+
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortLoopsOnASingleLine: false
