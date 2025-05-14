@@ -65,7 +65,7 @@ LUV_LUAAPI int luv_new_async(lua_State *const L) {
   if (ret < 0) {
     lua_pop(L, 1);
     luv_handle_unref(L, lhandle);
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 1);
@@ -80,5 +80,5 @@ LUV_LUAAPI int luv_async_send(lua_State *const L) {
   luv_thread_arg_set(L, args, 2, lua_gettop(L), LUVF_THREAD_MODE_ASYNC | LUVF_THREAD_SIDE_CHILD);
   const int ret = uv_async_send(async);
   luv_thread_arg_clear(L, args, LUVF_THREAD_SIDE_CHILD);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }

@@ -104,7 +104,7 @@ LUV_CBAPI void luv_getaddrinfo_cb(uv_getaddrinfo_t *req, int status, struct addr
   int nargs;
 
   if (status < 0) {
-    luv_status(L, status);
+    luv_pushstatus(L, status);
     nargs = 1;
   } else {
     lua_pushnil(L);
@@ -239,7 +239,7 @@ LUV_LUAAPI int luv_getaddrinfo(lua_State *const L) {
   if (ret < 0) {
     lua_pop(L, 1);
     luv_cleanup_req(L, lreq);
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
 #if LUV_UV_VERSION_GEQ(1, 3, 0)
@@ -261,7 +261,7 @@ LUV_CBAPI void luv_getnameinfo_cb(uv_getnameinfo_t *req, int status, const char 
   int nargs;
 
   if (status < 0) {
-    luv_status(L, status);
+    luv_pushstatus(L, status);
     nargs = 1;
   } else {
     lua_pushnil(L);
@@ -340,7 +340,7 @@ LUV_LUAAPI int luv_getnameinfo(lua_State *const L) {
   if (ret < 0) {
     luv_cleanup_req(L, lreq);
     lua_pop(L, 1);
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   // synchronous mode

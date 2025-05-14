@@ -54,7 +54,7 @@ LUV_LUAAPI int luv_new_idle(lua_State *const L) {
   const int ret = uv_idle_init(ctx->loop, idle);
   if (ret < 0) {
     lua_pop(L, 1);
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   return 1;
@@ -74,11 +74,11 @@ LUV_LUAAPI int luv_idle_start(lua_State *const L) {
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
 
   const int ret = uv_idle_start(idle, luv_idle_cb);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }
 
 LUV_LUAAPI int luv_idle_stop(lua_State *const L) {
   uv_idle_t *const idle = luv_idle_check(L, 1);
   const int ret = uv_idle_stop(idle);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }

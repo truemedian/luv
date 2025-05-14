@@ -57,7 +57,7 @@ LUV_LUAAPI int luv_new_fs_poll(lua_State *L) {
   const int ret = uv_fs_poll_init(ctx->loop, fs_poll);
   if (ret < 0) {
     lua_pop(L, 1);
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   return 1;
@@ -73,7 +73,7 @@ LUV_CBAPI void luv_fs_poll_cb(
   lua_State *L = lhandle->ctx->L;
 
   // err
-  luv_status(L, status);
+  luv_pushstatus(L, status);
 
   // prev
   if (prev != NULL) {
@@ -102,13 +102,13 @@ LUV_LUAAPI int luv_fs_poll_start(lua_State *L) {
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 4);
 
   const int ret = uv_fs_poll_start(fs_poll, luv_fs_poll_cb, path, interval);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }
 
 LUV_LUAAPI int luv_fs_poll_stop(lua_State *L) {
   uv_fs_poll_t *handle = luv_check_fs_poll(L, 1);
   const int ret = uv_fs_poll_stop(handle);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }
 
 LUV_LUAAPI int luv_fs_poll_getpath(lua_State *const L) {
@@ -119,7 +119,7 @@ LUV_LUAAPI int luv_fs_poll_getpath(lua_State *const L) {
 
   const int ret = uv_fs_poll_getpath(fs_poll, buf, &len);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   lua_pushlstring(L, buf, len);

@@ -47,7 +47,7 @@ LUV_LUAAPI int luv_metrics_info(lua_State *L) {
   uv_metrics_t metrics;
   const int ret = uv_metrics_info(luv_loop(L), &metrics);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   lua_createtable(L, 0, 3);

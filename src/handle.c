@@ -292,7 +292,7 @@ LUV_LUAAPI int luv_is_active(lua_State *const L) {
 
   const int ret = uv_is_active(handle);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
   lua_pushboolean(L, ret);
   return 1;
@@ -304,7 +304,7 @@ LUV_LUAAPI int luv_is_closing(lua_State *const L) {
 
   const int ret = uv_is_closing(handle);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
   lua_pushboolean(L, ret);
   return 1;
@@ -332,7 +332,7 @@ LUV_LUAAPI int luv_has_ref(lua_State *const L) {
 
   const int ret = uv_has_ref(handle);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
   lua_pushboolean(L, ret);
   return 1;
@@ -345,13 +345,13 @@ LUV_LUAAPI int luv_send_buffer_size(lua_State *const L) {
 
   if (value != 0) {  // set buffer size
     const int ret = uv_send_buffer_size(handle, &value);
-    return luv_result(L, ret);
+    return luv_pushresult(L, ret);
   }
 
   // get buffer size
   const int ret = uv_send_buffer_size(handle, &value);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
   lua_pushinteger(L, value);
   return 1;
@@ -364,13 +364,13 @@ LUV_LUAAPI int luv_recv_buffer_size(lua_State *const L) {
 
   if (value != 0) {  // set buffer size
     const int ret = uv_recv_buffer_size(handle, &value);
-    return luv_result(L, ret);
+    return luv_pushresult(L, ret);
   }
 
   // get buffer size
   const int ret = uv_recv_buffer_size(handle, &value);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
   lua_pushinteger(L, value);
   return 1;
@@ -383,7 +383,7 @@ LUV_LUAAPI int luv_fileno(lua_State *const L) {
   uv_os_fd_t fd;
   const int ret = uv_fileno(handle, &fd);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
   lua_pushinteger(L, (lua_Integer)fd);
   return 1;

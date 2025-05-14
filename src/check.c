@@ -54,7 +54,7 @@ LUV_LUAAPI int luv_new_check(lua_State *const L) {
   const int ret = uv_check_init(ctx->loop, check);
   if (ret < 0) {
     lua_pop(L, 1);
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   return 1;
@@ -74,11 +74,11 @@ LUV_LUAAPI int luv_check_start(lua_State *const L) {
   luv_callback_prep(LUV_CB_EVENT, lhandle, 2);
 
   const int ret = uv_check_start(check, luv_check_cb);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }
 
 LUV_LUAAPI int luv_check_stop(lua_State *const L) {
   uv_check_t *const check = luv_check_check(L, 1);
   const int ret = uv_check_stop(check);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }

@@ -58,7 +58,7 @@ LUV_LUAAPI int luv_new_fs_event(lua_State *const L) {
   const int ret = uv_fs_event_init(ctx->loop, fs_event);
   if (ret < 0) {
     lua_pop(L, 1);
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   return 1;
@@ -69,7 +69,7 @@ LUV_CBAPI void luv_fs_event_cb(uv_fs_event_t *fs_event, const char *filename, in
   lua_State *L = lhandle->ctx->L;
 
   // err
-  luv_status(L, status);
+  luv_pushstatus(L, status);
 
   // filename
   lua_pushstring(L, filename);
@@ -114,13 +114,13 @@ LUV_LUAAPI int luv_fs_event_start(lua_State *const L) {
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 4);
 
   const int ret = uv_fs_event_start(fs_event, luv_fs_event_cb, path, flags);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }
 
 LUV_LUAAPI int luv_fs_event_stop(lua_State *const L) {
   uv_fs_event_t *fs_event = luv_check_fs_event(L, 1);
   const int ret = uv_fs_event_stop(fs_event);
-  return luv_result(L, ret);
+  return luv_pushresult(L, ret);
 }
 
 LUV_LUAAPI int luv_fs_event_getpath(lua_State *const L) {
@@ -131,7 +131,7 @@ LUV_LUAAPI int luv_fs_event_getpath(lua_State *const L) {
 
   const int ret = uv_fs_event_getpath(fs_event, buf, &len);
   if (ret < 0) {
-    return luv_error(L, ret);
+    return luv_pushfail(L, ret);
   }
 
   lua_pushlstring(L, buf, len);

@@ -1,16 +1,12 @@
 #ifndef LUV_PRIVATE_H
 #define LUV_PRIVATE_H
 
-#define LUV_LUAAPI extern
-#define LUV_LIBAPI extern
-#define LUV_DEFAPI
-#define LUV_CBAPI static
-
 #include <lua.h>
 #if (LUA_VERSION_NUM < 503)
 #include "compat-5.3.h"
 #endif
 
+#include "internal.h"
 #include "lthreadpool.h"
 #include "luv.h"
 #include "util.h"
@@ -62,7 +58,7 @@ static void luv_push_stats_table(lua_State* L, const uv_stat_t* s);
 
 /* From util.c */
 // Push a Libuv error code onto the Lua stack
-static int luv_error(lua_State* L, int status);
+// static int luv_error(lua_State* L, int status);
 
 // Common error handling pattern for binding uv functions that only return success/error.
 // If the binding returns a value other than success/error, this function should not be used.
