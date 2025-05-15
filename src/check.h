@@ -18,10 +18,11 @@
 #ifndef LUV_CHECK_H
 #define LUV_CHECK_H
 
+#include <lauxlib.h>
 #include <lua.h>
 #include <uv.h>
 
-#include "private.h"
+#include "internal.h"
 
 LUV_LIBAPI luaL_Reg luv_check_methods[];
 LUV_LIBAPI luaL_Reg luv_check_functions[];

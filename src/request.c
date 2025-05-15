@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <uv.h>
 
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
 
 LUV_LIBAPI luv_req_t *luv_new_request(
   lua_State *const L,
@@ -49,7 +49,7 @@ LUV_LIBAPI luv_req_t *luv_new_request(
   if (lua_isnoneornil(L, callback_idx)) {
     lreq->callback = LUA_NOREF;
   } else {
-    luv_check_callable(L, callback_idx);
+    luv_checkcallable(L, callback_idx);
 
     lua_pushvalue(L, callback_idx);
     lreq->callback = luaL_ref(L, LUA_REGISTRYINDEX);

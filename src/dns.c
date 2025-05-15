@@ -31,12 +31,11 @@
 #include <uv.h>
 
 #include "constants.h"
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
 #include "request.h"
-#include "util.h"
 
-LUV_LIBAPI luaL_Reg luv_dns_functions[] = {
+LUV_DEFAPI luaL_Reg luv_dns_functions[] = {
   {"getaddrinfo", luv_getaddrinfo},
   {"getnameinfo", luv_getnameinfo},
   {NULL, NULL},

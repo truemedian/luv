@@ -16,15 +16,16 @@
  */
 #include "metrics.h"
 
+#include <lauxlib.h>
 #include <lua.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <uv.h>
 
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
-#include "util.h"
 
-LUV_LIBAPI luaL_Reg luv_metrics_functions[] = {
+LUV_DEFAPI luaL_Reg luv_metrics_functions[] = {
   {"metrics_idle_time", luv_metrics_idle_time},
 #if LUV_UV_VERSION_GEQ(1, 45, 0)
   {"metrics_info", luv_metrics_info},
@@ -32,7 +33,7 @@ LUV_LIBAPI luaL_Reg luv_metrics_functions[] = {
   {NULL, NULL},
 };
 
-LUV_LUAAPI int luv_metrics_idle_time(lua_State *L) {
+LUV_LUAAPI int luv_metrics_idle_time(lua_State *const L) {
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
   const uint64_t idle_time = uv_metrics_idle_time(luv_loop(L));
   lua_pushinteger(L, (lua_Integer)idle_time);
@@ -43,7 +44,7 @@ LUV_LUAAPI int luv_metrics_idle_time(lua_State *L) {
 }
 
 #if LUV_UV_VERSION_GEQ(1, 45, 0)
-LUV_LUAAPI int luv_metrics_info(lua_State *L) {
+LUV_LUAAPI int luv_metrics_info(lua_State *const L) {
   uv_metrics_t metrics;
   const int ret = uv_metrics_info(luv_loop(L), &metrics);
   if (ret < 0) {

@@ -23,13 +23,14 @@
 #include <ws2def.h>
 #endif
 
+#include <lauxlib.h>
 #include <lua.h>
 
-#include "private.h"
+#include "internal.h"
 
 LUV_LIBAPI luaL_Reg luv_dns_functions[];
 
-LUV_LIBAPI void luv_pushaddrinfo(lua_State *const L, const struct addrinfo *const res);
+LUV_LIBAPI void luv_pushaddrinfo(lua_State *L, const struct addrinfo *res);
 
 LUV_LUAAPI int luv_getaddrinfo(lua_State *L);
 

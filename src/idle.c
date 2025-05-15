@@ -18,11 +18,12 @@
 
 #include <lauxlib.h>
 #include <lua.h>
+#include <stddef.h>
 #include <uv.h>
 
 #include "handle.h"
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
 
 LUV_DEFAPI luaL_Reg luv_idle_methods[] = {
   {"start", luv_idle_start},

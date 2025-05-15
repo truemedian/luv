@@ -19,6 +19,10 @@
 
 #include <lauxlib.h>
 #include <lua.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <uv.h>
 
 LUV_LIBAPI noreturn void luv_argerror(lua_State *L, int arg, const char *fmt, ...) {
   va_list va_args;
@@ -86,10 +90,14 @@ LUV_LIBAPI int luv_iscallable(lua_State *const L, const int index) {
         case LUA_TFUNCTION:
           lua_pop(L, 1);
           return 1;
+        default:
+          break;
       }
 
       lua_pop(L, 1);
       return 0;
+    default:
+      break;
   }
 
   return 0;
@@ -100,8 +108,8 @@ LUV_LIBAPI void luv_checkcallable(lua_State *const L, const int index) {
     luv_typeerror(L, index, "callable");
 }
 
-LUV_LIBAPI void *luv_newuserdata(lua_State *const L, const size_t sz) {
-  void *const handle = malloc(sz);
+LUV_LIBAPI void *luv_newuserdata(lua_State *const L, const size_t alloc_sz) {
+  void *const handle = malloc(alloc_sz);
   if (handle == NULL)
     luv_error(L, "out of memory");
 

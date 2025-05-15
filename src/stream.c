@@ -22,10 +22,9 @@
 #include <uv.h>
 
 #include "handle.h"
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
 #include "request.h"
-#include "util.h"
 
 LUV_DEFAPI luaL_Reg luv_stream_methods[] = {
   {"shutdown", luv_shutdown},
@@ -72,7 +71,7 @@ LUV_DEFAPI luaL_Reg luv_stream_functions[] = {
 /* provides us an address which we guarantee is unique to us to mark stream metatables */
 static char stream_key;
 
-LUV_LIBAPI int luv_stream_metatable(lua_State *L, const char *name, const luaL_Reg *methods) {
+LUV_LIBAPI int luv_stream_metatable(lua_State *const L, const char *const name, const luaL_Reg *const methods) {
   luv_handle_metatable(L, name, methods);
 
   lua_pushboolean(L, 1);
@@ -149,14 +148,14 @@ LUV_LUAAPI int luv_listen(lua_State *const L) {
 
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 3);
   const int ret = uv_listen(stream, backlog, luv_connection_cb);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_accept(lua_State *const L) {
   uv_stream_t *server = luv_check_stream(L, 1);
   uv_stream_t *client = luv_check_stream(L, 2);
   int ret = uv_accept(server, client);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_CBAPI void luv_alloc_cb(uv_handle_t *const handle, const size_t suggested_size, uv_buf_t *const buf) {
@@ -196,13 +195,13 @@ LUV_LUAAPI int luv_read_start(lua_State *const L) {
 
   luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
   const int ret = uv_read_start(stream, luv_alloc_cb, luv_read_cb);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_read_stop(lua_State *const L) {
   uv_stream_t *stream = luv_check_stream(L, 1);
   const int ret = uv_read_stop(stream);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_CBAPI void luv_write_cb(uv_write_t *const req, const int status) {
@@ -266,12 +265,7 @@ LUV_LUAAPI int luv_try_write(lua_State *const L) {
 
   const int nwrite = uv_try_write(stream, bufs.bufs, bufs.bufs_count);
   luv_request_bufs_free(&bufs);
-
-  if (nwrite < 0) {
-    return luv_pushfail(L, nwrite);
-  }
-  lua_pushinteger(L, nwrite);
-  return 1;
+  return luv_pushresult(L, nwrite, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_is_readable(lua_State *const L) {
@@ -293,7 +287,7 @@ LUV_LUAAPI int luv_stream_set_blocking(lua_State *const L) {
   const int blocking = lua_toboolean(L, 2);
 
   const int ret = uv_stream_set_blocking(stream, blocking);
-  return luv_pushresult(L, ret);
+  return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 #if LUV_UV_VERSION_GEQ(1, 19, 0)
@@ -315,11 +309,6 @@ LUV_LUAAPI int luv_try_write2(lua_State *const L) {
 
   const int nwrite = uv_try_write2(stream, bufs.bufs, bufs.bufs_count, send_handle);
   luv_request_bufs_free(&bufs);
-
-  if (nwrite < 0) {
-    return luv_pushfail(L, nwrite);
-  }
-  lua_pushinteger(L, nwrite);
-  return 1;
+  return luv_pushresult(L, nwrite, LUA_TNUMBER);
 }
 #endif

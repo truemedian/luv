@@ -18,10 +18,11 @@
 #ifndef LUV_FS_POLL_H
 #define LUV_FS_POLL_H
 
+#include <lauxlib.h>
 #include <lua.h>
 #include <uv.h>
 
-#include "private.h"
+#include "internal.h"
 
 LUV_LIBAPI luaL_Reg luv_fs_poll_methods[];
 LUV_LIBAPI luaL_Reg luv_fs_poll_functions[];

@@ -18,10 +18,11 @@
 #ifndef LUV_IDLE_H
 #define LUV_IDLE_H
 
+#include <lauxlib.h>
 #include <lua.h>
 #include <uv.h>
 
-#include "private.h"
+#include "internal.h"
 
 LUV_LIBAPI luaL_Reg luv_idle_methods[];
 LUV_LIBAPI luaL_Reg luv_idle_functions[];

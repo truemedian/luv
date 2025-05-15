@@ -18,10 +18,10 @@
 #ifndef LUV_METRICS_H
 #define LUV_METRICS_H
 
+#include <lauxlib.h>
 #include <lua.h>
 
-#include "private.h"
-#include "util.h"
+#include "internal.h"
 
 LUV_LIBAPI luaL_Reg luv_metrics_functions[];
 

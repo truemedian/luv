@@ -14,6 +14,7 @@
  *  limitations under the License.
  *
  */
+#include "fs.h"
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -23,20 +24,7 @@
 
 #include "internal.h"
 #include "luv.h"
-#include "private.h"
 #include "request.h"
-#include "util.h"
-
-#if LUV_UV_VERSION_GEQ(1, 28, 0)
-typedef struct {
-  uv_dir_t *handle;
-  int ref; /* handle has been closed if this is LUA_NOREF */
-} luv_dir_t;
-#endif
-
-typedef struct {
-  uv_fs_t *req;
-} luv_fs_scandir_t;
 
 static uv_fs_t *luv_check_fs(lua_State *L, int index) {
   if (luaL_testudata(L, index, "uv_fs_scandir") != NULL) {

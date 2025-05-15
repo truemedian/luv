@@ -19,6 +19,7 @@
 #define LUV_INTERNAL_H
 
 #include <lua.h>
+#include <stddef.h>
 
 #define LUV_LUAAPI extern
 #define LUV_LIBAPI extern
@@ -76,6 +77,10 @@
   } while (0)
 #endif
 
+#define LUV_UV_VERSION_GEQ(major, minor, patch) (((major) << 16 | (minor) << 8 | (patch)) <= UV_VERSION_HEX)
+
+#define LUV_UV_VERSION_LEQ(major, minor, patch) (((major) << 16 | (minor) << 8 | (patch)) >= UV_VERSION_HEX)
+
 LUV_LIBAPI noreturn void luv_argerror(lua_State *L, int arg, const char *fmt, ...);
 
 LUV_LIBAPI noreturn void luv_typeerror(lua_State *L, int arg, const char *tname);
@@ -90,7 +95,7 @@ LUV_LIBAPI int luv_iscallable(lua_State *L, int index);
 
 LUV_LIBAPI void luv_checkcallable(lua_State *L, int index);
 
-LUV_LIBAPI void *luv_newuserdata(lua_State *L, size_t sz);
+LUV_LIBAPI void *luv_newuserdata(lua_State *L, size_t alloc_sz);
 
 LUV_LIBAPI void *luv_checkuserdata(lua_State *L, int idx, const char *tname);
 

@@ -21,8 +21,7 @@
 #include <stddef.h>
 #include <uv.h>
 
-#include "private.h"
-#include "util.h"
+#include "internal.h"
 
 #ifndef WIN32
 #include <fcntl.h>

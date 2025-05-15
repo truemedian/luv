@@ -67,4 +67,9 @@ typedef struct {
 #define LUVF_THREAD_SIDE(i)        ((i)&0x01)
 #define LUVF_THREAD_ASYNC(i)       ((i)&0x02)
 
+static int luv_thread_arg_set(lua_State* L, luv_thread_arg_t* args, int idx, int top, int flags);
+static int luv_thread_arg_push(lua_State* L, luv_thread_arg_t* args, int flags);
+static void luv_thread_arg_clear(lua_State* L, luv_thread_arg_t* args, int flags);
+static int luv_thread_arg_error(lua_State* L);
+
 #endif //LUV_LTHREADPOOL_H

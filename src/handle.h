@@ -18,14 +18,15 @@
 #ifndef LUV_HANDLE_H
 #define LUV_HANDLE_H
 
+#include <lauxlib.h>
 #include <lua.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <uv.h>
 
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
 
 enum luv_callback_id {
   /* callback for when the handle is closed */
@@ -69,10 +70,10 @@ LUV_LIBAPI void luv_handle_unref(lua_State *L, luv_handle_t *data);
 LUV_LIBAPI void luv_handle_push(lua_State *L, luv_handle_t *data);
 
 /* set a callback for a luv handle */
-LUV_LIBAPI void luv_callback_prep(lua_State *const L, enum luv_callback_id what, luv_handle_t *data, int index);
+LUV_LIBAPI void luv_callback_prep(lua_State *L, enum luv_callback_id what, luv_handle_t *data, int index);
 
 /* call a registered handle callback */
-LUV_LIBAPI void luv_callback_send(lua_State *const L, enum luv_callback_id what, const luv_handle_t *data, int nargs);
+LUV_LIBAPI void luv_callback_send(lua_State *L, enum luv_callback_id what, const luv_handle_t *data, int nargs);
 
 /* ensure the userdata at the given index is a handle and return a pointer to it */
 static luv_handle_t *luv_check_handle(lua_State *L, int index);

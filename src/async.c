@@ -19,13 +19,13 @@
 
 #include <lauxlib.h>
 #include <lua.h>
+#include <stddef.h>
 #include <uv.h>
 
 #include "handle.h"
+#include "internal.h"
 #include "lthreadpool.h"
 #include "luv.h"
-#include "private.h"
-#include "internal.h"
 
 LUV_DEFAPI luaL_Reg luv_async_methods[] = {
   {"send", luv_async_send},

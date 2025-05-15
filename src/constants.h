@@ -20,7 +20,7 @@
 
 #include <lua.h>
 
-#include "private.h"
+#include "internal.h"
 
 /* pushes a table of libuv and system constants onto the stack */
 LUV_LUAAPI int luv_push_constant_table(lua_State *L);

@@ -112,7 +112,7 @@ LUV_LIBAPI luv_handle_t *luv_new_handle(
   memset((void *)handle, 0, attached_size);
   handle->type = type;
 
-  return handle;
+  return lhandle;
 }
 
 LUV_LIBAPI void luv_handle_unref(lua_State *const L, luv_handle_t *const data) {
@@ -140,7 +140,7 @@ LUV_LIBAPI void luv_callback_prep(
 ) {
   luv_assert(L, L == data->ctx->L);
 
-  luv_check_callable(L, index);
+  luv_checkcallable(L, index);
   luaL_unref(L, LUA_REGISTRYINDEX, data->callbacks[what]);
   lua_pushvalue(L, index);
   data->callbacks[what] = luaL_ref(L, LUA_REGISTRYINDEX);

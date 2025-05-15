@@ -21,8 +21,8 @@
 #include <stddef.h>
 #include <uv.h>
 
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
 
 typedef struct {
   /* reference of the function to be called when the request is complete */

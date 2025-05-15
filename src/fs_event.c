@@ -23,8 +23,8 @@
 #include <uv.h>
 
 #include "handle.h"
+#include "internal.h"
 #include "luv.h"
-#include "private.h"
 
 LUV_DEFAPI luaL_Reg luv_fs_event_methods[] = {
   {"start", luv_fs_event_start},
@@ -123,7 +123,7 @@ LUV_LUAAPI int luv_fs_event_stop(lua_State *const L) {
 LUV_LUAAPI int luv_fs_event_getpath(lua_State *const L) {
   uv_fs_event_t *fs_event = luv_check_fs_event(L, 1);
 
-  size_t len = 2 * PATH_MAX;
+  size_t len = 2 * (size_t)PATH_MAX;
   char buf[2 * PATH_MAX];
 
   const int ret = uv_fs_event_getpath(fs_event, buf, &len);

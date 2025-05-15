@@ -22,8 +22,7 @@
 #include <lua.h>
 #include <uv.h>
 
-#include "luv.h"
-#include "private.h"
+#include "internal.h"
 
 LUV_LIBAPI luaL_Reg luv_stream_methods[];
 LUV_LIBAPI luaL_Reg luv_stream_functions[];
@@ -34,34 +33,34 @@ LUV_LIBAPI int luv_stream_metatable(lua_State *L, const char *name, const luaL_R
 /* ensure the userdata at the given index is a stream and return a pointer to it */
 LUV_LIBAPI uv_stream_t *luv_check_stream(lua_State *L, int index);
 
-LUV_LUAAPI int luv_shutdown(lua_State *const L);
+LUV_LUAAPI int luv_shutdown(lua_State *L);
 
-LUV_LUAAPI int luv_listen(lua_State *const L);
+LUV_LUAAPI int luv_listen(lua_State *L);
 
-LUV_LUAAPI int luv_accept(lua_State *const L);
+LUV_LUAAPI int luv_accept(lua_State *L);
 
-LUV_LUAAPI int luv_read_start(lua_State *const L);
+LUV_LUAAPI int luv_read_start(lua_State *L);
 
-LUV_LUAAPI int luv_read_stop(lua_State *const L);
+LUV_LUAAPI int luv_read_stop(lua_State *L);
 
-LUV_LUAAPI int luv_write(lua_State *const L);
+LUV_LUAAPI int luv_write(lua_State *L);
 
-LUV_LUAAPI int luv_write2(lua_State *const L);
+LUV_LUAAPI int luv_write2(lua_State *L);
 
-LUV_LUAAPI int luv_try_write(lua_State *const L);
+LUV_LUAAPI int luv_try_write(lua_State *L);
 
-LUV_LUAAPI int luv_is_readable(lua_State *const L);
+LUV_LUAAPI int luv_is_readable(lua_State *L);
 
-LUV_LUAAPI int luv_is_writable(lua_State *const L);
+LUV_LUAAPI int luv_is_writable(lua_State *L);
 
-LUV_LUAAPI int luv_stream_set_blocking(lua_State *const L);
+LUV_LUAAPI int luv_stream_set_blocking(lua_State *L);
 
 #if LUV_UV_VERSION_GEQ(1, 19, 0)
-LUV_LUAAPI int luv_stream_get_write_queue_size(lua_State *const L);
+LUV_LUAAPI int luv_stream_get_write_queue_size(lua_State *L);
 #endif
 
 #if LUV_UV_VERSION_GEQ(1, 42, 0)
-LUV_LUAAPI int luv_try_write2(lua_State *const L);
+LUV_LUAAPI int luv_try_write2(lua_State *L);
 #endif
 
 #endif  // LUV_STREAM_H

@@ -17,7 +17,7 @@
 #endif
 
 /* From stream.c */
-static uv_stream_t* luv_check_stream(lua_State* L, int index);
+// static uv_stream_t* luv_check_stream(lua_State* L, int index);
 static void luv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
 
 /* From lhandle.c */
@@ -89,10 +89,10 @@ static int luv_parse_signal(lua_State* L, int slot);
 /* From work.c */
 static int luv_thread_dumped(lua_State* L, int idx);
 static const char* luv_getmtname(lua_State *L, int idx);
-static int luv_thread_arg_set(lua_State* L, luv_thread_arg_t* args, int idx, int top, int flags);
-static int luv_thread_arg_push(lua_State* L, luv_thread_arg_t* args, int flags);
-static void luv_thread_arg_clear(lua_State* L, luv_thread_arg_t* args, int flags);
-static int luv_thread_arg_error(lua_State* L);
+// static int luv_thread_arg_set(lua_State* L, luv_thread_arg_t* args, int idx, int top, int flags);
+// static int luv_thread_arg_push(lua_State* L, luv_thread_arg_t* args, int flags);
+// static void luv_thread_arg_clear(lua_State* L, luv_thread_arg_t* args, int flags);
+// static int luv_thread_arg_error(lua_State* L);
 
 static luv_acquire_vm acquire_vm_cb = NULL;
 static luv_release_vm release_vm_cb = NULL;
