@@ -115,46 +115,64 @@ LUV_LIBAPI luv_handle_t *luv_new_handle(
   return lhandle;
 }
 
-LUV_LIBAPI void luv_handle_unref(lua_State *const L, luv_handle_t *const data) {
-  luv_assert(L, L == data->ctx->L);
+LUV_LIBAPI void luv_handle_unref(lua_State *const L, luv_handle_t *const lhandle) {
+  luv_assert(L, L == lhandle->ctx->L);
 
-  luaL_unref(L, LUA_REGISTRYINDEX, data->ref);
-  luaL_unref(L, LUA_REGISTRYINDEX, data->callbacks[0]);
-  luaL_unref(L, LUA_REGISTRYINDEX, data->callbacks[1]);
+  luaL_unref(L, LUA_REGISTRYINDEX, lhandle->ref);
+  luaL_unref(L, LUA_REGISTRYINDEX, lhandle->callbacks[0]);
+  luaL_unref(L, LUA_REGISTRYINDEX, lhandle->callbacks[1]);
 
-  data->ref = LUA_NOREF;
-  data->callbacks[0] = LUA_NOREF;
-  data->callbacks[1] = LUA_NOREF;
+  lhandle->ref = LUA_NOREF;
+  lhandle->callbacks[0] = LUA_NOREF;
+  lhandle->callbacks[1] = LUA_NOREF;
 }
 
-LUV_LIBAPI void luv_handle_push(lua_State *const L, luv_handle_t *const data) {
-  luv_assert(L, L == data->ctx->L);
-  lua_rawgeti(L, LUA_REGISTRYINDEX, data->ref);
+LUV_LIBAPI void luv_handle_push(lua_State *const L, const luv_handle_t *const lhandle) {
+  luv_assert(L, L == lhandle->ctx->L);
+  lua_rawgeti(L, LUA_REGISTRYINDEX, lhandle->ref);
 }
 
-LUV_LIBAPI void luv_callback_prep(
+LUV_LIBAPI void luv_handle_valid(lua_State *const L, const luv_handle_t *const lhandle) {
+  uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
+  if (lhandle->ref == LUA_NOREF)
+    luv_error(L, "handle %p is closed", handle);
+}
+
+LUV_LIBAPI void luv_callback_set(
   lua_State *const L,
   const enum luv_callback_id what,
-  luv_handle_t *const data,
+  luv_handle_t *const lhandle,
   int const index
 ) {
-  luv_assert(L, L == data->ctx->L);
+  luv_assert(L, L == lhandle->ctx->L);
 
   luv_checkcallable(L, index);
-  luaL_unref(L, LUA_REGISTRYINDEX, data->callbacks[what]);
+  luaL_unref(L, LUA_REGISTRYINDEX, lhandle->callbacks[what]);
   lua_pushvalue(L, index);
-  data->callbacks[what] = luaL_ref(L, LUA_REGISTRYINDEX);
+  lhandle->callbacks[what] = luaL_ref(L, LUA_REGISTRYINDEX);
+}
+
+LUV_LIBAPI void luv_callback_unset(
+  lua_State *const L,
+  const enum luv_callback_id what,
+  luv_handle_t *const lhandle,
+  int const index
+) {
+  luv_assert(L, L == lhandle->ctx->L);
+
+  luaL_unref(L, LUA_REGISTRYINDEX, lhandle->callbacks[what]);
+  lhandle->callbacks[what] = LUA_NOREF;
 }
 
 LUV_LIBAPI void luv_callback_send(
   lua_State *const L,
   const enum luv_callback_id what,
-  const luv_handle_t *const data,
+  const luv_handle_t *const lhandle,
   int const nargs
 ) {
-  luv_assert(L, L == data->ctx->L);
+  luv_assert(L, L == lhandle->ctx->L);
 
-  const int ref = data->callbacks[what];
+  const int ref = lhandle->callbacks[what];
   if (ref == LUA_NOREF) {
     lua_pop(L, nargs);
     return;
@@ -165,7 +183,7 @@ LUV_LIBAPI void luv_callback_send(
   if (nargs != 0)
     lua_insert(L, -1 - nargs);
 
-  const luv_ctx_t *const ctx = data->ctx;
+  const luv_ctx_t *const ctx = lhandle->ctx;
   ctx->cb_pcall(L, nargs, 0, 0);
 }
 
@@ -201,6 +219,12 @@ LUV_LUAAPI int luv_handle__tostring(lua_State *const L) {
       lua_pushfstring(L, "uv_handle: %p", handle);
       break;
   }
+
+  if (lhandle->ref == LUA_NOREF) {
+    lua_pushstring(L, " (closed)");
+    lua_concat(L, 2);
+  }
+
   return 1;
 }
 
@@ -208,7 +232,6 @@ static void luv_gc_close_cb(uv_handle_t *const handle) {
   luv_handle_t *const lhandle = luv_handle_from(handle);
 
   // libuv is done with the handle, we can free it now.
-  handle->type = UV_UNKNOWN_HANDLE;
   free(lhandle);
 }
 
@@ -217,16 +240,17 @@ LUV_LUAAPI int luv_handle__gc(lua_State *L) {
   luv_handle_t *const lhandle = *udata;
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
+  // either already closed or currently closing
+  int closed = (lhandle->ref == LUA_NOREF) || (uv_is_closing(handle) != 0);
+
   // release any references we may be holding
   luv_handle_unref(L, lhandle);
 
-  if (uv_is_closing(handle) == 0) {
-    // if the handle is not closed yet, we must close it first before freeing
-    // memory.
+  if (!closed) {
+    // if the handle is not closed yet, we must close it first before freeing memory.
     uv_close(handle, luv_gc_close_cb);
   } else {
     // otherwise, free the memory right away.
-    handle->type = UV_UNKNOWN_HANDLE;
     free(lhandle);
   }
 
@@ -238,11 +262,6 @@ static void luv_close_cb(uv_handle_t *const handle) {
   luv_handle_t *const lhandle = luv_handle_from(handle);
   lua_State *L = lhandle->ctx->L;
 
-  if (lhandle->ref == LUA_NOREF) {
-    free(lhandle);
-    return;
-  }
-
   luv_callback_send(L, LUV_CB_CLOSE, lhandle, 0);
   luv_handle_unref(L, lhandle);
 }
@@ -251,11 +270,13 @@ LUV_LUAAPI int luv_close(lua_State *L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
+  luv_handle_valid(L, lhandle);
+
   if (uv_is_closing(handle) != 0)
     luv_error(L, "handle %p is already closing", handle);
 
   if (!lua_isnoneornil(L, 2))
-    luv_callback_prep(L, LUV_CB_CLOSE, lhandle, 2);
+    luv_callback_set(L, LUV_CB_CLOSE, lhandle, 2);
 
   uv_close(handle, luv_close_cb);
   return 0;
@@ -264,6 +285,8 @@ LUV_LUAAPI int luv_close(lua_State *L) {
 LUV_LUAAPI int luv_is_active(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
+
+  luv_handle_valid(L, lhandle);
 
   const int ret = uv_is_active(handle);
   if (ret < 0)
@@ -276,6 +299,8 @@ LUV_LUAAPI int luv_is_closing(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
+  luv_handle_valid(L, lhandle);
+
   const int ret = uv_is_closing(handle);
   return luv_pushresult(L, ret, LUA_TBOOLEAN);
 }
@@ -283,6 +308,8 @@ LUV_LUAAPI int luv_is_closing(lua_State *const L) {
 LUV_LUAAPI int luv_ref(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
+
+  luv_handle_valid(L, lhandle);
 
   uv_ref(handle);
   return 0;
@@ -292,6 +319,8 @@ LUV_LUAAPI int luv_unref(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
+  luv_handle_valid(L, lhandle);
+
   uv_unref(handle);
   return 0;
 }
@@ -300,18 +329,18 @@ LUV_LUAAPI int luv_has_ref(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
+  luv_handle_valid(L, lhandle);
+
   const int ret = uv_has_ref(handle);
-  if (ret < 0) {
-    return luv_pushfail(L, ret);
-  }
-  lua_pushboolean(L, ret);
-  return 1;
+  return luv_pushresult(L, ret, LUA_TBOOLEAN);
 }
 
 LUV_LUAAPI int luv_send_buffer_size(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
   int value = (int)luaL_optinteger(L, 2, 0);
+
+  luv_handle_valid(L, lhandle);
 
   if (value != 0) {  // set buffer size
     const int ret = uv_send_buffer_size(handle, &value);
@@ -320,9 +349,8 @@ LUV_LUAAPI int luv_send_buffer_size(lua_State *const L) {
 
   // get buffer size
   const int ret = uv_send_buffer_size(handle, &value);
-  if (ret < 0) {
+  if (ret < 0)
     return luv_pushfail(L, ret);
-  }
   lua_pushinteger(L, value);
   return 1;
 }
@@ -331,6 +359,8 @@ LUV_LUAAPI int luv_recv_buffer_size(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
   int value = (int)luaL_optinteger(L, 2, 0);
+
+  luv_handle_valid(L, lhandle);
 
   if (value != 0) {  // set buffer size
     const int ret = uv_recv_buffer_size(handle, &value);
@@ -350,11 +380,13 @@ LUV_LUAAPI int luv_fileno(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
 
+  luv_handle_valid(L, lhandle);
+
   uv_os_fd_t fd;
   const int ret = uv_fileno(handle, &fd);
-  if (ret < 0) {
+  if (ret < 0)
     return luv_pushfail(L, ret);
-  }
+
   lua_pushinteger(L, (lua_Integer)fd);
   return 1;
 }
@@ -362,6 +394,8 @@ LUV_LUAAPI int luv_fileno(lua_State *const L) {
 LUV_LUAAPI int luv_handle_get_type(lua_State *const L) {
   luv_handle_t *const lhandle = luv_check_handle(L, 1);
   uv_handle_t *const handle = luv_handle_of(uv_handle_t, lhandle);
+
+  luv_handle_valid(L, lhandle);
 
   const uv_handle_type type = handle->type;
   switch (type) {

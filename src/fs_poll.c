@@ -100,7 +100,7 @@ LUV_LUAAPI int luv_fs_poll_start(lua_State *L) {
   const char *path = luaL_checkstring(L, 2);
   const unsigned int interval = (unsigned int)luaL_checkinteger(L, 3);
 
-  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 4);
+  luv_callback_set(L, LUV_CB_EVENT, lhandle, 4);
 
   const int ret = uv_fs_poll_start(fs_poll, luv_fs_poll_cb, path, interval);
   return luv_pushresult(L, ret, LUA_TNUMBER);

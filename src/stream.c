@@ -84,23 +84,17 @@ LUV_LIBAPI int luv_stream_metatable(lua_State *const L, const char *const name, 
   return 1;
 }
 
-LUV_LIBAPI uv_stream_t *luv_check_stream(lua_State *const L, const int index) {
+LUV_LIBAPI luv_handle_t *luv_check_stream(lua_State *const L, const int index) {
   void *userdata = lua_touserdata(L, index);
-  if (userdata == NULL) {
-    luaL_argerror(L, index, "expected uv_stream userdata");
-    return NULL;
-  }
+  if (userdata == NULL)
+    luv_typeerror(L, index, "uv_stream");
 
-  if (lua_getmetatable(L, index) == 0) {
-    luaL_argerror(L, index, "expected uv_stream userdata");
-    return NULL;
-  }
+  if (lua_getmetatable(L, index) == 0)
+    luv_typeerror(L, index, "uv_stream");
 
   lua_rawgetp(L, -1, &stream_key);
-  if (lua_toboolean(L, -1) == 0) {
-    luaL_argerror(L, index, "expected uv_stream userdata");
-    return NULL;
-  }
+  if (lua_toboolean(L, -1) == 0)
+    luv_typeerror(L, index, "uv_stream");
 
   lua_pop(L, 2);
   luv_handle_t *lhandle = *(luv_handle_t **)userdata;
@@ -117,9 +111,10 @@ static void luv_shutdown_cb(uv_shutdown_t *const req, const int status) {
 }
 
 LUV_LUAAPI int luv_shutdown(lua_State *const L) {
-  luv_ctx_t *ctx = luv_context(L);
-  uv_stream_t *stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
 
+  luv_ctx_t *ctx = luv_context(L);
   luv_req_t *lreq = luv_new_request(L, UV_SHUTDOWN, ctx, 2);
   uv_shutdown_t *shutdown = luv_request_of(uv_shutdown_t, lreq);
 
@@ -141,18 +136,22 @@ static void luv_connection_cb(uv_stream_t *const stream, const int status) {
 }
 
 LUV_LUAAPI int luv_listen(lua_State *const L) {
-  uv_stream_t *stream = luv_check_stream(L, 1);
-  luv_handle_t *lhandle = luv_handle_from(stream);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
+
   const int backlog = (int)luaL_checkinteger(L, 2);
 
-  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 3);
+  luv_callback_set(L, LUV_CB_EVENT, lhandle, 3);
   const int ret = uv_listen(stream, backlog, luv_connection_cb);
   return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_accept(lua_State *const L) {
-  uv_stream_t *server = luv_check_stream(L, 1);
-  uv_stream_t *client = luv_check_stream(L, 2);
+  luv_handle_t *server_handle = luv_check_stream(L, 1);
+  luv_handle_t *client_handle = luv_check_stream(L, 2);
+  uv_stream_t *server = luv_handle_of(uv_stream_t, server_handle);
+  uv_stream_t *client = luv_handle_of(uv_stream_t, client_handle);
+
   int ret = uv_accept(server, client);
   return luv_pushresult(L, ret, LUA_TNUMBER);
 }
@@ -189,16 +188,18 @@ static void luv_read_cb(uv_stream_t *const stream, const ssize_t nread, const uv
 }
 
 LUV_LUAAPI int luv_read_start(lua_State *const L) {
-  uv_stream_t *stream = luv_check_stream(L, 1);
-  luv_handle_t *lhandle = luv_handle_from(stream);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
 
-  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
+  luv_callback_set(L, LUV_CB_EVENT, lhandle, 2);
   const int ret = uv_read_start(stream, luv_alloc_cb, luv_read_cb);
   return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
 LUV_LUAAPI int luv_read_stop(lua_State *const L) {
-  uv_stream_t *stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
+
   const int ret = uv_read_stop(stream);
   return luv_pushresult(L, ret, LUA_TNUMBER);
 }
@@ -213,9 +214,10 @@ static void luv_write_cb(uv_write_t *const req, const int status) {
 }
 
 LUV_LUAAPI int luv_write(lua_State *const L) {
-  luv_ctx_t *ctx = luv_context(L);
-  uv_stream_t *const stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
 
+  luv_ctx_t *ctx = luv_context(L);
   luv_req_t *lreq = luv_new_request(L, UV_WRITE, ctx, 3);
   uv_write_t *const write = luv_request_of(uv_write_t, lreq);
 
@@ -233,10 +235,13 @@ LUV_LUAAPI int luv_write(lua_State *const L) {
 }
 
 LUV_LUAAPI int luv_write2(lua_State *const L) {
-  luv_ctx_t *ctx = luv_context(L);
-  uv_stream_t *stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
 
-  uv_stream_t *const send_handle = luv_check_stream(L, 3);
+  luv_ctx_t *ctx = luv_context(L);
+
+  luv_handle_t *send_lhandle = luv_check_stream(L, 3);
+  uv_stream_t *send_stream = luv_handle_of(uv_stream_t, send_lhandle);
 
   luv_req_t *lreq = luv_new_request(L, UV_WRITE, ctx, 4);
   uv_write_t *const write = luv_request_of(uv_write_t, lreq);
@@ -244,7 +249,7 @@ LUV_LUAAPI int luv_write2(lua_State *const L) {
   luv_bufs_t bufs;
   luv_request_bufs(L, lreq, &bufs, 2);
 
-  const int ret = uv_write2(write, stream, bufs.bufs, bufs.bufs_count, send_handle, luv_write_cb);
+  const int ret = uv_write2(write, stream, bufs.bufs, bufs.bufs_count, send_stream, luv_write_cb);
   luv_request_bufs_free(&bufs);
   if (ret < 0) {
     luv_cleanup_req(L, lreq);
@@ -255,7 +260,8 @@ LUV_LUAAPI int luv_write2(lua_State *const L) {
 }
 
 LUV_LUAAPI int luv_try_write(lua_State *const L) {
-  uv_stream_t *stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
 
   luv_bufs_t bufs;
   luv_request_bufs(L, NULL, &bufs, 2);
@@ -266,19 +272,24 @@ LUV_LUAAPI int luv_try_write(lua_State *const L) {
 }
 
 LUV_LUAAPI int luv_is_readable(lua_State *const L) {
-  uv_stream_t *const stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
+
   lua_pushboolean(L, uv_is_readable(stream));
   return 1;
 }
 
 LUV_LUAAPI int luv_is_writable(lua_State *const L) {
-  uv_stream_t *const stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
+
   lua_pushboolean(L, uv_is_writable(stream));
   return 1;
 }
 
 LUV_LUAAPI int luv_stream_set_blocking(lua_State *const L) {
-  uv_stream_t *const stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
 
   luaL_checktype(L, 2, LUA_TBOOLEAN);
   const int blocking = lua_toboolean(L, 2);
@@ -289,7 +300,9 @@ LUV_LUAAPI int luv_stream_set_blocking(lua_State *const L) {
 
 #if LUV_UV_VERSION_GEQ(1, 19, 0)
 LUV_LUAAPI int luv_stream_get_write_queue_size(lua_State *const L) {
-  uv_stream_t *const stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
+
   lua_pushinteger(L, (lua_Integer)uv_stream_get_write_queue_size(stream));
   return 1;
 }
@@ -297,14 +310,16 @@ LUV_LUAAPI int luv_stream_get_write_queue_size(lua_State *const L) {
 
 #if LUV_UV_VERSION_GEQ(1, 42, 0)
 LUV_LUAAPI int luv_try_write2(lua_State *const L) {
-  uv_stream_t *const stream = luv_check_stream(L, 1);
+  luv_handle_t *lhandle = luv_check_stream(L, 1);
+  uv_stream_t *stream = luv_handle_of(uv_stream_t, lhandle);
 
   luv_bufs_t bufs;
   luv_request_bufs(L, NULL, &bufs, 2);
 
-  uv_stream_t *const send_handle = luv_check_stream(L, 3);
+  luv_handle_t *send_lhandle = luv_check_stream(L, 3);
+  uv_stream_t *send_stream = luv_handle_of(uv_stream_t, send_lhandle);
 
-  const int nwrite = uv_try_write2(stream, bufs.bufs, bufs.bufs_count, send_handle);
+  const int nwrite = uv_try_write2(stream, bufs.bufs, bufs.bufs_count, send_stream);
   luv_request_bufs_free(&bufs);
   return luv_pushresult(L, nwrite, LUA_TNUMBER);
 }

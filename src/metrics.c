@@ -47,9 +47,8 @@ LUV_LUAAPI int luv_metrics_idle_time(lua_State *const L) {
 LUV_LUAAPI int luv_metrics_info(lua_State *const L) {
   uv_metrics_t metrics;
   const int ret = uv_metrics_info(luv_loop(L), &metrics);
-  if (ret < 0) {
+  if (ret < 0)
     return luv_pushfail(L, ret);
-  }
 
   lua_createtable(L, 0, 3);
 

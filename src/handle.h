@@ -66,13 +66,16 @@ LUV_LIBAPI luv_handle_t *luv_new_handle(lua_State *L, uv_handle_type type, const
 LUV_LIBAPI void luv_handle_unref(lua_State *L, luv_handle_t *data);
 
 /* push the userdata associated with this handle */
-LUV_LIBAPI void luv_handle_push(lua_State *L, luv_handle_t *data);
+LUV_LIBAPI void luv_handle_push(lua_State *L, const luv_handle_t *lhandle);
+
+/* check if the handle is still valid, i.e. not closed. this must be called before any uv_* functions */
+LUV_LIBAPI void luv_handle_valid(lua_State *L, const luv_handle_t *lhandle);
 
 /* set a callback for a luv handle */
-LUV_LIBAPI void luv_callback_prep(lua_State *L, enum luv_callback_id what, luv_handle_t *data, int index);
+LUV_LIBAPI void luv_callback_set(lua_State *L, enum luv_callback_id what, luv_handle_t *lhandle, int index);
 
 /* call a registered handle callback */
-LUV_LIBAPI void luv_callback_send(lua_State *L, enum luv_callback_id what, const luv_handle_t *data, int nargs);
+LUV_LIBAPI void luv_callback_send(lua_State *L, enum luv_callback_id what, const luv_handle_t *lhandle, int nargs);
 
 /* ensure the userdata at the given index is a handle and return a pointer to it */
 static luv_handle_t *luv_check_handle(lua_State *L, int index);

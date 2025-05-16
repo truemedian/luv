@@ -72,7 +72,7 @@ LUV_LUAAPI int luv_idle_start(lua_State *const L) {
   uv_idle_t *const idle = luv_idle_check(L, 1);
   luv_handle_t *const lhandle = luv_handle_from(idle);
 
-  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
+  luv_callback_set(L, LUV_CB_EVENT, lhandle, 2);
 
   const int ret = uv_idle_start(idle, luv_idle_cb);
   return luv_pushresult(L, ret, LUA_TNUMBER);

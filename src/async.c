@@ -68,7 +68,7 @@ LUV_LUAAPI int luv_new_async(lua_State *const L) {
     return luv_pushfail(L, ret);
   }
 
-  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 1);
+  luv_callback_set(L, LUV_CB_EVENT, lhandle, 1);
   return 1;
 }
 

@@ -72,7 +72,7 @@ LUV_LUAAPI int luv_check_start(lua_State *const L) {
   uv_check_t *const check = luv_check_check(L, 1);
   luv_handle_t *const lhandle = luv_handle_from(check);
 
-  luv_callback_prep(L, LUV_CB_EVENT, lhandle, 2);
+  luv_callback_set(L, LUV_CB_EVENT, lhandle, 2);
 
   const int ret = uv_check_start(check, luv_check_cb);
   return luv_pushresult(L, ret, LUA_TNUMBER);
