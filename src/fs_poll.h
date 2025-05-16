@@ -30,16 +30,9 @@ LUV_LIBAPI luaL_Reg luv_fs_poll_functions[];
 /* ensure the userdata at the given index is a uv_fs_poll and return a pointer to it */
 LUV_LIBAPI uv_fs_poll_t *luv_check_fs_poll(lua_State *L, int index);
 
-/* new_fs_poll() -> uv_fs_poll */
 LUV_LUAAPI int luv_new_fs_poll(lua_State *L);
-
-/* fs_poll:start(path, interval, callback) -> integer */
 LUV_LUAAPI int luv_fs_poll_start(lua_State *L);
-
-/* fs_poll:stop() -> integer */
 LUV_LUAAPI int luv_fs_poll_stop(lua_State *L);
-
-/* fs_poll:getpath() -> string */
 LUV_LUAAPI int luv_fs_poll_getpath(lua_State *L);
 
 #endif  // LUV_FS_POLL_H

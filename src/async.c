@@ -46,7 +46,7 @@ LUV_LIBAPI uv_async_t *luv_check_async(lua_State *const L, const int index) {
   return async;
 }
 
-LUV_CBAPI void luv_async_cb(uv_async_t *const async) {
+static void luv_async_cb(uv_async_t *const async) {
   luv_handle_t *lhandle = luv_handle_from(async);
   luv_thread_arg_t *args = (luv_thread_arg_t *)luv_handle_extra(uv_async_t, lhandle);
   lua_State *L = lhandle->ctx->L;
@@ -64,7 +64,6 @@ LUV_LUAAPI int luv_new_async(lua_State *const L) {
 
   const int ret = uv_async_init(ctx->loop, async, luv_async_cb);
   if (ret < 0) {
-    lua_pop(L, 1);
     luv_handle_unref(L, lhandle);
     return luv_pushfail(L, ret);
   }

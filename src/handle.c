@@ -204,7 +204,7 @@ LUV_LUAAPI int luv_handle__tostring(lua_State *const L) {
   return 1;
 }
 
-LUV_CBAPI void luv_gc_close_cb(uv_handle_t *const handle) {
+static void luv_gc_close_cb(uv_handle_t *const handle) {
   luv_handle_t *const lhandle = luv_handle_from(handle);
 
   // libuv is done with the handle, we can free it now.
@@ -234,7 +234,7 @@ LUV_LUAAPI int luv_handle__gc(lua_State *L) {
   return 0;
 }
 
-LUV_CBAPI void luv_close_cb(uv_handle_t *const handle) {
+static void luv_close_cb(uv_handle_t *const handle) {
   luv_handle_t *const lhandle = luv_handle_from(handle);
   lua_State *L = lhandle->ctx->L;
 

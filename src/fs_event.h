@@ -30,16 +30,9 @@ LUV_LIBAPI luaL_Reg luv_fs_event_functions[];
 /* ensure the userdata at the given index is a uv_fs_event and return a pointer to it */
 LUV_LIBAPI uv_fs_event_t *luv_check_fs_event(lua_State *L, int index);
 
-/* new_fs_event() -> uv_fs_event */
 LUV_LUAAPI int luv_new_fs_event(lua_State *L);
-
-/* fs_event:start(path, flags, callback) -> integer */
 LUV_LUAAPI int luv_fs_event_start(lua_State *L);
-
-/* fs_event:stop() -> integer */
 LUV_LUAAPI int luv_fs_event_stop(lua_State *L);
-
-/* fs_event:getpath() -> string */
 LUV_LUAAPI int luv_fs_event_getpath(lua_State *L);
 
 #endif  // LUV_FS_EVENT_H

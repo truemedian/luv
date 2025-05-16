@@ -107,7 +107,7 @@ LUV_LIBAPI uv_stream_t *luv_check_stream(lua_State *const L, const int index) {
   return luv_handle_of(uv_stream_t, lhandle);
 }
 
-LUV_CBAPI void luv_shutdown_cb(uv_shutdown_t *const req, const int status) {
+static void luv_shutdown_cb(uv_shutdown_t *const req, const int status) {
   luv_req_t *lreq = luv_request_from(req);
   lua_State *L = lreq->ctx->L;
 
@@ -126,14 +126,13 @@ LUV_LUAAPI int luv_shutdown(lua_State *const L) {
   const int ret = uv_shutdown(shutdown, stream, luv_shutdown_cb);
   if (ret < 0) {
     luv_cleanup_req(L, lreq);
-    lua_pop(L, 1);
     return luv_pushfail(L, ret);
   }
 
   return 1;
 }
 
-LUV_CBAPI void luv_connection_cb(uv_stream_t *const stream, const int status) {
+static void luv_connection_cb(uv_stream_t *const stream, const int status) {
   luv_handle_t *lhandle = luv_handle_from(stream);
   lua_State *L = lhandle->ctx->L;
 
@@ -158,13 +157,13 @@ LUV_LUAAPI int luv_accept(lua_State *const L) {
   return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
-LUV_CBAPI void luv_alloc_cb(uv_handle_t *const handle, const size_t suggested_size, uv_buf_t *const buf) {
+static void luv_alloc_cb(uv_handle_t *const handle, const size_t suggested_size, uv_buf_t *const buf) {
   (void)handle;
   buf->base = (char *)malloc(suggested_size);
   buf->len = suggested_size;
 }
 
-LUV_CBAPI void luv_read_cb(uv_stream_t *const stream, const ssize_t nread, const uv_buf_t *const buf) {
+static void luv_read_cb(uv_stream_t *const stream, const ssize_t nread, const uv_buf_t *const buf) {
   luv_handle_t *lhandle = luv_handle_from(stream);
   lua_State *L = lhandle->ctx->L;
 
@@ -204,7 +203,7 @@ LUV_LUAAPI int luv_read_stop(lua_State *const L) {
   return luv_pushresult(L, ret, LUA_TNUMBER);
 }
 
-LUV_CBAPI void luv_write_cb(uv_write_t *const req, const int status) {
+static void luv_write_cb(uv_write_t *const req, const int status) {
   luv_req_t *lreq = luv_request_from(req);
   lua_State *L = lreq->ctx->L;
 
@@ -227,7 +226,6 @@ LUV_LUAAPI int luv_write(lua_State *const L) {
   luv_request_bufs_free(&bufs);
   if (ret < 0) {
     luv_cleanup_req(L, lreq);
-    lua_pop(L, 1);
     return luv_pushfail(L, ret);
   }
 
@@ -250,7 +248,6 @@ LUV_LUAAPI int luv_write2(lua_State *const L) {
   luv_request_bufs_free(&bufs);
   if (ret < 0) {
     luv_cleanup_req(L, lreq);
-    lua_pop(L, 1);
     return luv_pushfail(L, ret);
   }
 

@@ -54,14 +54,14 @@ LUV_LUAAPI int luv_new_check(lua_State *const L) {
 
   const int ret = uv_check_init(ctx->loop, check);
   if (ret < 0) {
-    lua_pop(L, 1);
+    luv_handle_unref(L, lhandle);
     return luv_pushfail(L, ret);
   }
 
   return 1;
 }
 
-LUV_CBAPI void luv_check_cb(uv_check_t *const check) {
+static void luv_check_cb(uv_check_t *const check) {
   luv_handle_t *const lhandle = luv_handle_from(check);
   lua_State *const L = lhandle->ctx->L;
 

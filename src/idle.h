@@ -30,13 +30,8 @@ LUV_LIBAPI luaL_Reg luv_idle_functions[];
 /* ensure the userdata at the given index is a uv_idle and return a pointer to it */
 LUV_LIBAPI uv_idle_t *luv_idle_check(lua_State *L, int index);
 
-/* new_idle(callback) -> uv_idle */
 LUV_LUAAPI int luv_new_idle(lua_State *L);
-
-/* uv_idle:start(callback) -> integer */
 LUV_LUAAPI int luv_idle_start(lua_State *L);
-
-/* uv_idle:stop() -> integer */
 LUV_LUAAPI int luv_idle_stop(lua_State *L);
 
 #endif  // LUV_IDLE_H

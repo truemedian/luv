@@ -32,29 +32,33 @@ typedef struct {
   uv_fs_t *req;
 } luv_fs_scandir_t;
 
+/* ensure the userdata at the given index is a uv_fs request and return a pointer to it */
 static uv_fs_t *luv_check_fs(lua_State *L, int index);
 
 LUV_LIBAPI int luv_fs_gc(lua_State *L);
 
+/* push a table representing the given timespec to the stack */
 LUV_LIBAPI void luv_push_timespec_table(lua_State *L, const uv_timespec_t *tmspec);
+
+/* push a table representing the given stat to the stack */
 LUV_LIBAPI void luv_push_stats_table(lua_State *L, const uv_stat_t *stat);
+
+/* push a string representing the given dirent type to the stack */
 LUV_LIBAPI void luv_push_dirent_type(lua_State *L, uv_dirent_type_t typ);
 
 #if LUV_UV_VERSION_GEQ(1, 31, 0)
+/* push a table representing the given statfs to the stack */
 LUV_LIBAPI void luv_push_statfs_table(lua_State *const L, const uv_statfs_t *const stat);
 #endif
 
+/* ensure the number or string at the given index is a valid open mode flag and return it */
 LUV_LIBAPI int luv_check_oflags(lua_State *const L, const int index);
+
+/* ensure the number or string at the given index is a valid access mode flag and return it */
 LUV_LIBAPI int luv_check_amode(lua_State *const L, const int index);
+
+/* ensure the number or string at the given index is a valid file time and return it */
 LUV_LIBAPI double luv_fs_check_ftime(lua_State *L, int index);
-
-/* Processes a result and pushes the data onto the stack
-   returns the number of items pushed */
-static int push_fs_result(lua_State *L, uv_fs_t *fs_req, const int asynchronous);
-
-LUV_LIBAPI int luv_fs_request_failure(lua_State *const L, luv_req_t *const lreq, const int ret);
-
-LUV_LIBAPI void luv_fs_request_cleanup(lua_State *const L, luv_req_t *const lreq);
 
 LUV_LUAAPI int luv_fs_close(lua_State *const L);
 LUV_LUAAPI int luv_fs_open(lua_State *L);
@@ -106,7 +110,9 @@ typedef struct {
   int ref; /* handle has been closed if this is LUA_NOREF */
 } luv_dir_t;
 
-LUV_LUAAPI luv_dir_t *luv_check_dir(lua_State *L, int idx);
+/* ensure the userdata at the given index is a luv_dir and return a pointer to it */
+LUV_LIBAPI luv_dir_t *luv_check_dir(lua_State *L, int idx);
+
 LUV_LUAAPI int luv_fs_opendir(lua_State *L);
 LUV_LUAAPI int luv_fs_readdir(lua_State *L);
 LUV_LUAAPI int luv_fs_closedir(lua_State *L);

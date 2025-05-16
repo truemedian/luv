@@ -30,10 +30,7 @@ LUV_LIBAPI luaL_Reg luv_async_functions[];
 /* ensure the userdata at the given index is a uv_async and return a pointer to it */
 LUV_LIBAPI uv_async_t *luv_check_async(lua_State *L, int index);
 
-/* new_async(callback) -> uv_async */
 LUV_LUAAPI int luv_new_async(lua_State *L);
-
-/* async:send(...) -> integer */
 LUV_LUAAPI int luv_async_send(lua_State *L);
 
 #endif  // LUV_ASYNC_H

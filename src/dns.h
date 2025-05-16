@@ -30,10 +30,10 @@
 
 LUV_LIBAPI luaL_Reg luv_dns_functions[];
 
+/* push a table representing the given addrinfo to the stack */
 LUV_LIBAPI void luv_pushaddrinfo(lua_State *L, const struct addrinfo *res);
 
 LUV_LUAAPI int luv_getaddrinfo(lua_State *L);
-
 LUV_LUAAPI int luv_getnameinfo(lua_State *L);
 
 #endif

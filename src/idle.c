@@ -54,14 +54,14 @@ LUV_LUAAPI int luv_new_idle(lua_State *const L) {
 
   const int ret = uv_idle_init(ctx->loop, idle);
   if (ret < 0) {
-    lua_pop(L, 1);
+    luv_handle_unref(L, lhandle);
     return luv_pushfail(L, ret);
   }
 
   return 1;
 }
 
-LUV_CBAPI void luv_idle_cb(uv_idle_t *const handle) {
+static void luv_idle_cb(uv_idle_t *const handle) {
   luv_handle_t *const lhandle = luv_handle_from(handle);
   lua_State *const L = lhandle->ctx->L;
 

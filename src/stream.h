@@ -34,25 +34,15 @@ LUV_LIBAPI int luv_stream_metatable(lua_State *L, const char *name, const luaL_R
 LUV_LIBAPI uv_stream_t *luv_check_stream(lua_State *L, int index);
 
 LUV_LUAAPI int luv_shutdown(lua_State *L);
-
 LUV_LUAAPI int luv_listen(lua_State *L);
-
 LUV_LUAAPI int luv_accept(lua_State *L);
-
 LUV_LUAAPI int luv_read_start(lua_State *L);
-
 LUV_LUAAPI int luv_read_stop(lua_State *L);
-
 LUV_LUAAPI int luv_write(lua_State *L);
-
 LUV_LUAAPI int luv_write2(lua_State *L);
-
 LUV_LUAAPI int luv_try_write(lua_State *L);
-
 LUV_LUAAPI int luv_is_readable(lua_State *L);
-
 LUV_LUAAPI int luv_is_writable(lua_State *L);
-
 LUV_LUAAPI int luv_stream_set_blocking(lua_State *L);
 
 #if LUV_UV_VERSION_GEQ(1, 19, 0)

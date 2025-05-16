@@ -57,14 +57,14 @@ LUV_LUAAPI int luv_new_fs_poll(lua_State *L) {
 
   const int ret = uv_fs_poll_init(ctx->loop, fs_poll);
   if (ret < 0) {
-    lua_pop(L, 1);
+    luv_handle_unref(L, lhandle);
     return luv_pushfail(L, ret);
   }
 
   return 1;
 }
 
-LUV_CBAPI void luv_fs_poll_cb(
+static void luv_fs_poll_cb(
   uv_fs_poll_t *const fs_poll,
   const int status,
   const uv_stat_t *const prev,

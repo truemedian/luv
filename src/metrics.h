@@ -25,12 +25,10 @@
 
 LUV_LIBAPI luaL_Reg luv_metrics_functions[];
 
-/* metrics_idle_time() -> integer */
 LUV_LUAAPI int luv_metrics_idle_time(lua_State *L);
 
 #if LUV_UV_VERSION_GEQ(1, 45, 0)
 
-/* metrics_info() -> table */
 LUV_LUAAPI int luv_metrics_info(lua_State *L);
 
 #endif

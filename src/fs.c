@@ -448,7 +448,7 @@ static void luv_fs_cb(uv_fs_t *fs_req) {
   luv_cleanup_req(L, lreq);
 }
 
-LUV_LIBAPI int luv_fs_request_failure(lua_State *const L, luv_req_t *const lreq, const int ret) {
+static int luv_fs_request_failure(lua_State *const L, luv_req_t *const lreq, const int ret) {
   luv_assert(L, ret < 0);
 
   uv_fs_t *const fs_req = luv_request_of(uv_fs_t, lreq);
@@ -471,7 +471,7 @@ LUV_LIBAPI int luv_fs_request_failure(lua_State *const L, luv_req_t *const lreq,
   return 3;
 }
 
-LUV_LIBAPI void luv_fs_request_cleanup(lua_State *const L, luv_req_t *const lreq) {
+static void luv_fs_request_cleanup(lua_State *const L, luv_req_t *const lreq) {
   uv_fs_t *const fs_req = luv_request_of(uv_fs_t, lreq);
 
   // free the request data, this will also prevent the request from being garbage collected
@@ -871,7 +871,7 @@ LUV_LUAAPI int luv_fs_lchown(lua_State *L) {
 #endif
 
 #if LUV_UV_VERSION_GEQ(1, 28, 0)
-LUV_LUAAPI luv_dir_t *luv_check_dir(lua_State *L, int idx) {
+LUV_LIBAPI luv_dir_t *luv_check_dir(lua_State *L, int idx) {
   luv_dir_t *dir = (luv_dir_t *)luaL_checkudata(L, idx, "uv_dir");
   return dir;
 }

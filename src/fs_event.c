@@ -57,14 +57,14 @@ LUV_LUAAPI int luv_new_fs_event(lua_State *const L) {
 
   const int ret = uv_fs_event_init(ctx->loop, fs_event);
   if (ret < 0) {
-    lua_pop(L, 1);
+    luv_handle_unref(L, lhandle);
     return luv_pushfail(L, ret);
   }
 
   return 1;
 }
 
-LUV_CBAPI void luv_fs_event_cb(uv_fs_event_t *fs_event, const char *filename, int events, int status) {
+static void luv_fs_event_cb(uv_fs_event_t *fs_event, const char *filename, int events, int status) {
   luv_handle_t *const lhandle = luv_handle_from(fs_event);
   lua_State *L = lhandle->ctx->L;
 

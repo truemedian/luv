@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <uv.h>
 
-LUV_LIBAPI noreturn void luv_argerror(lua_State *L, int arg, const char *fmt, ...) {
+LUV_LIBAPI noreturn void luv_argerror(lua_State *const L, const int arg, const char *const fmt, ...) {
   va_list va_args;
   va_start(va_args, fmt);
   const char *extramsg = lua_pushvfstring(L, fmt, va_args);
@@ -34,7 +34,7 @@ LUV_LIBAPI noreturn void luv_argerror(lua_State *L, int arg, const char *fmt, ..
   unreachable();
 }
 
-LUV_LIBAPI noreturn void luv_typeerror(lua_State *L, int arg, const char *tname) {
+LUV_LIBAPI noreturn void luv_typeerror(lua_State *L, const int arg, const char *const tname) {
   const char *typearg;
   if (luaL_getmetafield(L, arg, "__name") == LUA_TSTRING)
     typearg = lua_tostring(L, -1);
@@ -44,6 +44,18 @@ LUV_LIBAPI noreturn void luv_typeerror(lua_State *L, int arg, const char *tname)
     typearg = luaL_typename(L, arg);
 
   luv_argerror(L, arg, "expected %s, got %s", tname, typearg);
+}
+
+LUV_LIBAPI void luv_checkopttype(lua_State *const L, const int arg, const int type) {
+  if (lua_isnoneornil(L, arg))
+    return 0;
+
+  if (lua_type(L, 1) != type) {
+    const char *const tname = lua_pushfstring("%s or nil", lua_typename(L, type));
+    luv_typeerror(L, arg, tname);
+  }
+
+  return 1;
 }
 
 LUV_LIBAPI int luv_pushfail(lua_State *const L, const int status) {

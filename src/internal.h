@@ -20,11 +20,11 @@
 
 #include <lua.h>
 #include <stddef.h>
+#include <uv.h>
 
 #define LUV_LUAAPI extern
 #define LUV_LIBAPI extern
 #define LUV_DEFAPI
-#define LUV_CBAPI static
 
 #if __STDC_VERSION__ < 201112L
 // noreturn not present until C11
@@ -55,6 +55,7 @@
 #define luv_likely(cond) (cond)
 #endif
 
+/* throw an error with the given format string and arguments */
 #define luv_error(L, ...)         \
   do {                            \
     luaL_error((L), __VA_ARGS__); \
@@ -62,6 +63,7 @@
   } while (0)
 
 #if defined(NDEBUG)
+/* ensure the condition is true, throw an error otherwise */
 #define luv_assert(L, cond)                          \
   do {                                               \
     if (luv_unlikely(!(cond))) {                     \
@@ -69,6 +71,7 @@
     }                                                \
   } while (0)
 #else
+/* ensure the condition is true, throw an error otherwise */
 #define luv_assert(L, cond)                                                      \
   do {                                                                           \
     if (luv_unlikely(!(cond))) {                                                 \
@@ -81,22 +84,34 @@
 
 #define LUV_UV_VERSION_LEQ(major, minor, patch) (((major) << 16 | (minor) << 8 | (patch)) >= UV_VERSION_HEX)
 
+/* throw an error about a function argument with a given format string and arguments */
 LUV_LIBAPI noreturn void luv_argerror(lua_State *L, int arg, const char *fmt, ...);
 
+/* returns true if the value at the given arg is the expected type, false if it is nil, and throws an error otherwise */
+LUV_LIBAPI int luv_checkopttype(lua_State *L, int arg, int type);
+
+/* throw an error about the type of a function argument being incorrect */
 LUV_LIBAPI noreturn void luv_typeerror(lua_State *L, int arg, const char *tname);
 
+/* push a unsuccessful uv status as nil, errmsg, errname. status must be negative */
 LUV_LIBAPI int luv_pushfail(lua_State *L, int status);
 
+/* push a uv status as either a number or boolean depending on type; or a failure */
 LUV_LIBAPI int luv_pushresult(lua_State *L, int status, int type);
 
+/* push a uv status as either a string representing the error name or nil on success */
 LUV_LIBAPI int luv_pushstatus(lua_State *L, int status);
 
+/* returns true if the value at the given index is either a function or callable table/userdata */
 LUV_LIBAPI int luv_iscallable(lua_State *L, int index);
 
+/* ensure the value at the given index is callable (see above) */
 LUV_LIBAPI void luv_checkcallable(lua_State *L, int index);
 
+/* allocate space for a new userdata*/
 LUV_LIBAPI void *luv_newuserdata(lua_State *L, size_t alloc_sz);
 
+/* ensure the userdata at the given index is of the requested type and return a pointer to it */
 LUV_LIBAPI void *luv_checkuserdata(lua_State *L, int idx, const char *tname);
 
 #endif  // LUV_INTERNAL_H

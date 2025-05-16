@@ -18,17 +18,17 @@
 
 /* From stream.c */
 // static uv_stream_t* luv_check_stream(lua_State* L, int index);
-static void luv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
+// static void luv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
 
 /* From lhandle.c */
 /* Traceback for lua_pcall */
-static int luv_traceback (lua_State *L);
+// static int luv_traceback (lua_State *L);
 
 /* From lreq.c */
 /* Used in the top of a setup function to check the arg
    and ref the callback to an integer.
 */
-static int luv_check_continuation(lua_State* L, int index);
+// static int luv_check_continuation(lua_State* L, int index);
 
 /* setup a luv_req_t.  The userdata is assumed to be at the
    top of the stack.
@@ -54,7 +54,7 @@ static void parse_sockaddr(lua_State* L, struct sockaddr_storage* address);
 static void luv_connect_cb(uv_connect_t* req, int status);
 
 /* From fs.c */
-static void luv_push_stats_table(lua_State* L, const uv_stat_t* s);
+// static void luv_push_stats_table(lua_State* L, const uv_stat_t* s);
 
 /* From util.c */
 // Push a Libuv error code onto the Lua stack
@@ -62,21 +62,21 @@ static void luv_push_stats_table(lua_State* L, const uv_stat_t* s);
 
 // Common error handling pattern for binding uv functions that only return success/error.
 // If the binding returns a value other than success/error, this function should not be used.
-static int luv_result(lua_State* L, int status);
+// static int luv_result(lua_State* L, int status);
 
 // Push the error name onto the stack if status is an error code,
 // or push nil onto the stack if it's not an error code
-static void luv_status(lua_State* L, int status);
+// static void luv_status(lua_State* L, int status);
 
 // Return true if the object is a function or a callable table
-static int luv_is_callable(lua_State* L, int index);
+// static int luv_is_callable(lua_State* L, int index);
 
 // Check if the argument is callable and throw an error if it's not
-static void luv_check_callable(lua_State* L, int index);
+// static void luv_check_callable(lua_State* L, int index);
 
 // Throw an argument error formatted with the type name of the value at the argument's index
 // Example: luv_arg_type_error(L, 1, "expected number or table, got %s");
-static int luv_arg_type_error(lua_State* L, int index, const char* fmt);
+// static int luv_arg_type_error(lua_State* L, int index, const char* fmt);
 
 static int luv_optboolean(lua_State*L, int idx, int defaultval);
 

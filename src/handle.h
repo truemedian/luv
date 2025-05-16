@@ -29,10 +29,9 @@
 #include "luv.h"
 
 enum luv_callback_id {
-  /* callback for when the handle is closed */
+  /* when the handle is closed */
   LUV_CB_CLOSE,
-  /* callback for when an event is emitted by this handle every event only has
-     one associated event so this is safe */
+  /* when an event is emitted by this handle, each type of handle only ever handles a single event */
   LUV_CB_EVENT,
   LUV_CB_MAX,
 };
@@ -87,40 +86,17 @@ static luv_handle_t *luv_check_handle(lua_State *L, int index);
 /* obtain a pointer to any attached extra data given a luv_handle_t */
 #define luv_handle_extra(utype, lhandle) ((char *)(lhandle) + sizeof(luv_handle_t) + sizeof(utype))
 
-/* uv_handle:__tostring(uv_handle) -> string */
 LUV_LUAAPI int luv_handle__tostring(lua_State *L);
-
-/* uv_handle:__gc() -> void */
 LUV_LUAAPI int luv_handle__gc(lua_State *L);
-
-/* uv_handle:close([callable]) -> void */
 LUV_LUAAPI int luv_close(lua_State *L);
-
-/* uv_handle:is_active() -> boolean */
 LUV_LUAAPI int luv_is_active(lua_State *L);
-
-/* uv_handle:is_closing() -> boolean */
 LUV_LUAAPI int luv_is_closing(lua_State *L);
-
-/* uv_handle:ref() -> void */
 LUV_LUAAPI int luv_ref(lua_State *L);
-
-/* uv_handle:unref() -> void */
 LUV_LUAAPI int luv_unref(lua_State *L);
-
-/* uv_handle:has_ref() -> boolean */
 LUV_LUAAPI int luv_has_ref(lua_State *L);
-
-/* uv_handle:send_buffer_size([integer]) -> integer */
 LUV_LUAAPI int luv_send_buffer_size(lua_State *L);
-
-/* uv_handle:recv_buffer_size([integer]) -> integer */
 LUV_LUAAPI int luv_recv_buffer_size(lua_State *L);
-
-/* uv_handle:fileno() -> integer */
 LUV_LUAAPI int luv_fileno(lua_State *L);
-
-/* uv_handle:get_type() -> string */
 LUV_LUAAPI int luv_handle_get_type(lua_State *L);
 
 #endif  // LUV_HANDLE_H

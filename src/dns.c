@@ -97,7 +97,7 @@ LUV_LIBAPI void luv_pushaddrinfo(lua_State *const L, const struct addrinfo *cons
   }
 }
 
-LUV_CBAPI void luv_getaddrinfo_cb(uv_getaddrinfo_t *req, int status, struct addrinfo *res) {
+static void luv_getaddrinfo_cb(uv_getaddrinfo_t *req, int status, struct addrinfo *res) {
   luv_req_t *lreq = luv_request_from(req);
   lua_State *L = lreq->ctx->L;
   int nargs;
@@ -236,7 +236,6 @@ LUV_LUAAPI int luv_getaddrinfo(lua_State *const L) {
   uv_getaddrinfo_cb callback = lreq->callback == LUA_NOREF ? NULL : luv_getaddrinfo_cb;
   const int ret = uv_getaddrinfo(ctx->loop, getaddrinfo, callback, node, service, hints);
   if (ret < 0) {
-    lua_pop(L, 1);
     luv_cleanup_req(L, lreq);
     return luv_pushfail(L, ret);
   }
@@ -254,7 +253,7 @@ LUV_LUAAPI int luv_getaddrinfo(lua_State *const L) {
   return 1;
 }
 
-LUV_CBAPI void luv_getnameinfo_cb(uv_getnameinfo_t *req, int status, const char *hostname, const char *service) {
+static void luv_getnameinfo_cb(uv_getnameinfo_t *req, int status, const char *hostname, const char *service) {
   luv_req_t *data = (luv_req_t *)req->data;
   lua_State *L = data->ctx->L;
   int nargs;
@@ -338,7 +337,6 @@ LUV_LUAAPI int luv_getnameinfo(lua_State *const L) {
   const int ret = uv_getnameinfo(ctx->loop, getnameinfo, callback, (struct sockaddr *)&addr, 0);
   if (ret < 0) {
     luv_cleanup_req(L, lreq);
-    lua_pop(L, 1);
     return luv_pushfail(L, ret);
   }
 
