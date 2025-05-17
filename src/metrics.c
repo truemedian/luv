@@ -19,7 +19,7 @@
 #include "util.h"
 
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
-static int luv_metrics_idle_time(lua_State* L) {
+static int luv_metrics_idle_time(lua_State *L) {
   uint64_t idle_time = uv_metrics_idle_time(luv_loop(L));
   lua_pushinteger(L, idle_time);
   return 1;
@@ -30,7 +30,8 @@ static int luv_metrics_idle_time(lua_State* L) {
 static int luv_metrics_info(lua_State *L) {
   uv_metrics_t metrics;
   int ret = uv_metrics_info(luv_loop(L), &metrics);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
 
   lua_newtable(L);
 

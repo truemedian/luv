@@ -16,22 +16,21 @@
  */
 #include "private.h"
 
-static int luv_loop_close(lua_State* L) {
+static int luv_loop_close(lua_State *L) {
   int ret = uv_loop_close(luv_loop(L));
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   luv_set_loop(L, NULL);
   lua_pushinteger(L, ret);
   return 1;
 }
 
 // These are the same order as uv_run_mode which also starts at 0
-static const char *const luv_runmodes[] = {
-  "default", "once", "nowait", NULL
-};
+static const char *const luv_runmodes[] = {"default", "once", "nowait", NULL};
 
-static int luv_run(lua_State* L) {
+static int luv_run(lua_State *L) {
   int mode = luaL_checkoption(L, 1, "default", luv_runmodes);
-  luv_ctx_t* ctx = luv_context(L);
+  luv_ctx_t *ctx = luv_context(L);
   if (ctx->mode != -1) {
     lua_pushnil(L);
     lua_pushstring(L, "loop already running");
@@ -40,13 +39,14 @@ static int luv_run(lua_State* L) {
   ctx->mode = mode;
   int ret = uv_run(ctx->loop, (uv_run_mode)mode);
   ctx->mode = -1;
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushboolean(L, ret);
   return 1;
 }
 
-static int luv_loop_mode(lua_State* L) {
-  luv_ctx_t* ctx = luv_context(L);
+static int luv_loop_mode(lua_State *L) {
+  luv_ctx_t *ctx = luv_context(L);
   if (ctx->mode == -1) {
     lua_pushnil(L);
   } else {
@@ -55,19 +55,20 @@ static int luv_loop_mode(lua_State* L) {
   return 1;
 }
 
-static int luv_loop_alive(lua_State* L) {
+static int luv_loop_alive(lua_State *L) {
   int ret = uv_loop_alive(luv_loop(L));
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushboolean(L, ret);
   return 1;
 }
 
-static int luv_stop(lua_State* L) {
+static int luv_stop(lua_State *L) {
   uv_stop(luv_loop(L));
   return 0;
 }
 
-static int luv_backend_fd(lua_State* L) {
+static int luv_backend_fd(lua_State *L) {
   int ret = uv_backend_fd(luv_loop(L));
   // -1 is returned when there is no backend fd (like on Windows)
   if (ret == -1)
@@ -77,27 +78,27 @@ static int luv_backend_fd(lua_State* L) {
   return 1;
 }
 
-static int luv_backend_timeout(lua_State* L) {
+static int luv_backend_timeout(lua_State *L) {
   int ret = uv_backend_timeout(luv_loop(L));
   lua_pushinteger(L, ret);
   return 1;
 }
 
-static int luv_now(lua_State* L) {
+static int luv_now(lua_State *L) {
   uint64_t now = uv_now(luv_loop(L));
   lua_pushinteger(L, now);
   return 1;
 }
 
-static int luv_update_time(lua_State* L) {
+static int luv_update_time(lua_State *L) {
   uv_update_time(luv_loop(L));
   return 0;
 }
 
-static void luv_walk_cb(uv_handle_t* handle, void* arg) {
-  luv_ctx_t* ctx = (luv_ctx_t*)arg;
-  lua_State* L = ctx->L;
-  luv_handle_t* data = (luv_handle_t*)handle->data;
+static void luv_walk_cb(uv_handle_t *handle, void *arg) {
+  luv_ctx_t *ctx = (luv_ctx_t *)arg;
+  lua_State *L = ctx->L;
+  luv_handle_t *data = (luv_handle_t *)handle->data;
 
   // Skip foreign handles (shared event loop)
   lua_rawgeti(L, LUA_REGISTRYINDEX, ctx->ht_ref);
@@ -111,13 +112,13 @@ static void luv_walk_cb(uv_handle_t* handle, void* arg) {
   // Most invalid values are large and refs are small, 0x1000000 is arbitrary.
   assert(data && data->ref < 0x1000000);
 
-  lua_pushvalue(L, 1);           // Copy the function
-  luv_find_handle(L, data);      // Get the userdata
+  lua_pushvalue(L, 1);              // Copy the function
+  luv_find_handle(L, data);         // Get the userdata
   data->ctx->cb_pcall(L, 1, 0, 0);  // Call the function
 }
 
-static int luv_walk(lua_State* L) {
-  luv_ctx_t* ctx = luv_context(L);
+static int luv_walk(lua_State *L) {
+  luv_ctx_t *ctx = luv_context(L);
   luaL_checktype(L, 1, LUA_TFUNCTION);
   uv_walk(luv_loop(L), luv_walk_cb, ctx);
   return 0;
@@ -132,16 +133,21 @@ static const char *const luv_loop_configure_options[] = {
   NULL
 };
 
-static int luv_loop_configure(lua_State* L) {
-  uv_loop_t* loop = luv_loop(L);
+static int luv_loop_configure(lua_State *L) {
+  uv_loop_t *loop = luv_loop(L);
   uv_loop_option option = 0;
   int ret = 0;
   switch (luaL_checkoption(L, 1, NULL, luv_loop_configure_options)) {
-  case 0: option = UV_LOOP_BLOCK_SIGNAL; break;
+    case 0:
+      option = UV_LOOP_BLOCK_SIGNAL;
+      break;
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
-  case 1: option = UV_METRICS_IDLE_TIME; break;
+    case 1:
+      option = UV_METRICS_IDLE_TIME;
+      break;
 #endif
-  default: break; /* unreachable */
+    default:
+      break; /* unreachable */
   }
   if (option == UV_LOOP_BLOCK_SIGNAL) {
     // lua_isstring checks for string or number

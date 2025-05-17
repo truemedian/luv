@@ -16,23 +16,22 @@
  */
 #include "private.h"
 
-
-static int luv_check_continuation(lua_State* L, int index) {
-  if (lua_isnoneornil(L, index)) return LUA_NOREF;
-  luv_check_callable(L, index);
+static int luv_check_continuation(lua_State *L, int index) {
+  if (lua_isnoneornil(L, index))
+    return LUA_NOREF;
+  luv_checkcallable(L, index);
   lua_pushvalue(L, index);
   return luaL_ref(L, LUA_REGISTRYINDEX);
 }
 
 // Store a lua callback in a luv_req for the continuation.
 // The uv_req_t is assumed to be at the top of the stack
-static luv_req_t* luv_setup_req_with_mt(lua_State* L, luv_ctx_t* ctx, int cb_ref, const char* mt_name) {
-  luv_req_t* data;
-
+static luv_req_t *luv_setup_req_with_mt(lua_State *L, luv_ctx_t *ctx, int cb_ref, const char *mt_name) {
   luaL_checktype(L, -1, LUA_TUSERDATA);
 
-  data = (luv_req_t*)malloc(sizeof(*data));
-  if (!data) luaL_error(L, "Problem allocating luv request");
+  luv_req_t *data = (luv_req_t *)malloc(sizeof(*data));
+  if (!data)
+    luaL_error(L, "Problem allocating luv request");
 
   luaL_getmetatable(L, mt_name);
   lua_setmetatable(L, -2);
@@ -47,16 +46,14 @@ static luv_req_t* luv_setup_req_with_mt(lua_State* L, luv_ctx_t* ctx, int cb_ref
   return data;
 }
 
-static luv_req_t* luv_setup_req(lua_State* L, luv_ctx_t* ctx, int cb_ref) {
+static luv_req_t *luv_setup_req(lua_State *L, luv_ctx_t *ctx, int cb_ref) {
   return luv_setup_req_with_mt(L, ctx, cb_ref, "uv_req");
 }
 
-
-static void luv_fulfill_req(lua_State* L, luv_req_t* data, int nargs) {
+static void luv_fulfill_req(lua_State *L, luv_req_t *data, int nargs) {
   if (data->callback_ref == LUA_NOREF) {
     lua_pop(L, nargs);
-  }
-  else {
+  } else {
     // Get the callback
     lua_rawgeti(L, LUA_REGISTRYINDEX, data->callback_ref);
     // And insert it before the args if there are any.
@@ -67,16 +64,14 @@ static void luv_fulfill_req(lua_State* L, luv_req_t* data, int nargs) {
   }
 }
 
-static void luv_cleanup_req(lua_State* L, luv_req_t* data) {
-  int i;
+static void luv_cleanup_req(lua_State *L, luv_req_t *data) {
   luaL_unref(L, LUA_REGISTRYINDEX, data->req_ref);
   luaL_unref(L, LUA_REGISTRYINDEX, data->callback_ref);
   if (data->data_ref == LUV_REQ_MULTIREF) {
-    for (i = 0; ((int*)(data->data))[i] != LUA_NOREF; i++) {
-      luaL_unref(L, LUA_REGISTRYINDEX, ((int*)(data->data))[i]);
+    for (int i = 0; ((int *)(data->data))[i] != LUA_NOREF; i++) {
+      luaL_unref(L, LUA_REGISTRYINDEX, ((int *)(data->data))[i]);
     }
-  }
-  else
+  } else
     luaL_unref(L, LUA_REGISTRYINDEX, data->data_ref);
   free(data->data);
   free(data);
