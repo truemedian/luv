@@ -16,58 +16,6 @@
  */
 #include "private.h"
 
-static int luv_error(lua_State* L, int status) {
-  assert(status < 0);
-  lua_pushnil(L);
-  lua_pushfstring(L, "%s: %s", uv_err_name(status), uv_strerror(status));
-  lua_pushstring(L, uv_err_name(status));
-  return 3;
-}
-
-static int luv_result(lua_State* L, int status) {
-  if (status < 0)
-    return luv_error(L, status);
-  lua_pushinteger(L, status);
-  return 1;
-}
-
-static void luv_status(lua_State* L, int status) {
-  if (status < 0) {
-    lua_pushstring(L, uv_err_name(status));
-  } else {
-    lua_pushnil(L);
-  }
-}
-
-static int luv_iscallable(lua_State* L, int index) {
-  if (luaL_getmetafield(L, index, "__call") != LUA_TNIL) {
-    // getmetatable(x).__call must be a function for x() to work
-    int callable = lua_isfunction(L, -1);
-    lua_pop(L, 1);
-    return callable;
-  }
-  return lua_isfunction(L, index);
-}
-
-static void luv_checkcallable(lua_State* L, int index) {
-  if (!luv_iscallable(L, index))
-    luv_typeerror(L, index, "function or callable table");
-}
-
-static int luv_typeerror(lua_State* L, int index, const char* tname) {
-  const char* typearg;
-
-  if (luaL_getmetafield(L, index, "__name") == LUA_TSTRING)
-    typearg = lua_tostring(L, -1);
-  else if (lua_type(L, index) == LUA_TLIGHTUSERDATA)
-    typearg = "light userdata";
-  else
-    typearg = luaL_typename(L, index);
-
-  const char* extramsg = lua_pushfstring(L, "expected %s, got %s", tname, typearg);
-  luaL_argerror(L, index, extramsg);
-}
-
 #if LUV_UV_VERSION_GEQ(1, 10, 0)
 static int luv_translate_sys_error(lua_State* L) {
   int status = luaL_checkinteger(L, 1);
