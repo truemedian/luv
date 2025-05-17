@@ -42,9 +42,8 @@ static void luv_prepare_cb(uv_prepare_t* handle) {
 
 static int luv_prepare_start(lua_State* L) {
   uv_prepare_t* handle = luv_check_prepare(L, 1);
-  int ret;
   luv_check_callback(L, (luv_handle_t*)handle->data, LUV_PREPARE, 2);
-  ret = uv_prepare_start(handle, luv_prepare_cb);
+  int ret = uv_prepare_start(handle, luv_prepare_cb);
   return luv_result(L, ret);
 }
 
@@ -53,4 +52,3 @@ static int luv_prepare_stop(lua_State* L) {
   int ret = uv_prepare_stop(handle);
   return luv_result(L, ret);
 }
-

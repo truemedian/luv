@@ -16,29 +16,6 @@
  */
 #include "private.h"
 
-void luv_stack_dump(lua_State* L, const char* name) {
-  int i, l;
-  fprintf(stderr, "\nAPI STACK DUMP %p %d: %s\n", L, lua_status(L), name);
-  for (i = 1, l = lua_gettop(L); i <= l; i++) {
-    int type = lua_type(L, i);
-    switch (type) {
-      case LUA_TSTRING:
-        fprintf(stderr, "  %d %s \"%s\"\n", i, lua_typename(L, type), lua_tostring(L, i));
-        break;
-      case LUA_TNUMBER:
-        fprintf(stderr, "  %d %s %ld\n", i, lua_typename(L, type), (long int) lua_tointeger(L, i));
-        break;
-      case LUA_TUSERDATA:
-        fprintf(stderr, "  %d %s %p\n", i, lua_typename(L, type), lua_touserdata(L, i));
-        break;
-      default:
-        fprintf(stderr, "  %d %s\n", i, lua_typename(L, type));
-        break;
-    }
-  }
-  assert(l == lua_gettop(L));
-}
-
 static int luv_error(lua_State* L, int status) {
   assert(status < 0);
   lua_pushnil(L);
@@ -48,7 +25,8 @@ static int luv_error(lua_State* L, int status) {
 }
 
 static int luv_result(lua_State* L, int status) {
-  if (status < 0) return luv_error(L, status);
+  if (status < 0)
+    return luv_error(L, status);
   lua_pushinteger(L, status);
   return 1;
 }
@@ -56,13 +34,12 @@ static int luv_result(lua_State* L, int status) {
 static void luv_status(lua_State* L, int status) {
   if (status < 0) {
     lua_pushstring(L, uv_err_name(status));
-  }
-  else {
+  } else {
     lua_pushnil(L);
   }
 }
 
-static int luv_is_callable(lua_State* L, int index) {
+static int luv_iscallable(lua_State* L, int index) {
   if (luaL_getmetafield(L, index, "__call") != LUA_TNIL) {
     // getmetatable(x).__call must be a function for x() to work
     int callable = lua_isfunction(L, -1);
@@ -72,24 +49,23 @@ static int luv_is_callable(lua_State* L, int index) {
   return lua_isfunction(L, index);
 }
 
-static void luv_check_callable(lua_State* L, int index) {
-  if (luv_is_callable(L, index))
-    return;
-  else
-    luv_arg_type_error(L, index, "function or callable table expected, got %s");
+static void luv_checkcallable(lua_State* L, int index) {
+  if (!luv_iscallable(L, index))
+    luv_typeerror(L, index, "function or callable table");
 }
 
-static int luv_arg_type_error(lua_State* L, int index, const char* fmt) {
-  const char *msg;
-  const char *typearg;  /* name for the type of the actual argument */
+static int luv_typeerror(lua_State* L, int index, const char* tname) {
+  const char* typearg;
+
   if (luaL_getmetafield(L, index, "__name") == LUA_TSTRING)
-    typearg = lua_tostring(L, -1);  /* use the given type name */
+    typearg = lua_tostring(L, -1);
   else if (lua_type(L, index) == LUA_TLIGHTUSERDATA)
-    typearg = "light userdata";  /* special name for messages */
+    typearg = "light userdata";
   else
-    typearg = luaL_typename(L, index);  /* standard name */
-  msg = lua_pushfstring(L, fmt, typearg);
-  return luaL_argerror(L, index, msg);
+    typearg = luaL_typename(L, index);
+
+  const char* extramsg = lua_pushfstring(L, "expected %s, got %s", tname, typearg);
+  luaL_argerror(L, index, extramsg);
 }
 
 #if LUV_UV_VERSION_GEQ(1, 10, 0)
@@ -105,7 +81,7 @@ static int luv_translate_sys_error(lua_State* L) {
 }
 #endif
 
-static int luv_optboolean(lua_State*L, int idx, int val) {
+static int luv_optboolean(lua_State* L, int idx, int val) {
   idx = lua_absindex(L, idx);
   luaL_argcheck(L, lua_isboolean(L, idx) || lua_isnoneornil(L, idx), idx, "Expected boolean or nil");
 

@@ -23,12 +23,10 @@ static uv_pipe_t* luv_check_pipe(lua_State* L, int index) {
 }
 
 static int luv_new_pipe(lua_State* L) {
-  uv_pipe_t* handle;
-  int ipc, ret;
   luv_ctx_t* ctx = luv_context(L);
-  ipc = luv_optboolean(L, 1, 0);
-  handle = (uv_pipe_t*)luv_newuserdata(L, uv_handle_size(UV_NAMED_PIPE));
-  ret = uv_pipe_init(ctx->loop, handle, ipc);
+  int ipc = luv_optboolean(L, 1, 0);
+  uv_pipe_t* handle = (uv_pipe_t*)luv_newuserdata(L, uv_handle_size(UV_NAMED_PIPE));
+  int ret = uv_pipe_init(ctx->loop, handle, ipc);
   if (ret < 0) {
     lua_pop(L, 1);
     return luv_error(L, ret);
@@ -62,27 +60,25 @@ static int luv_pipe_connect(lua_State* L) {
   return 1;
 }
 
-
-#if LUV_UV_VERSION_GEQ(1,46,0)
-static int luv_pipe_optflags(lua_State *L, int i, unsigned int flags) {
+#if LUV_UV_VERSION_GEQ(1, 46, 0)
+static int luv_pipe_optflags(lua_State* L, int i, unsigned int flags) {
   // flags param can be nil, an integer, or a table
   if (lua_type(L, i) == LUA_TNUMBER || lua_isnoneornil(L, i)) {
     flags = (unsigned int)luaL_optinteger(L, i, flags);
-  }
-  else if (lua_type(L, i) == LUA_TTABLE) {
+  } else if (lua_type(L, i) == LUA_TTABLE) {
     lua_getfield(L, i, "no_truncate");
-    if (lua_toboolean(L, -1)) flags |= UV_PIPE_NO_TRUNCATE;
+    if (lua_toboolean(L, -1))
+      flags |= UV_PIPE_NO_TRUNCATE;
     lua_pop(L, 1);
-  }
-  else {
+  } else {
     return luaL_argerror(L, i, "expected nil, integer, or table");
   }
   return flags;
 }
 
 static int luv_pipe_bind2(lua_State* L) {
-  size_t namelen;
   uv_pipe_t* handle = luv_check_pipe(L, 1);
+  size_t namelen;
   const char* name = luaL_checklstring(L, 2, &namelen);
   unsigned int flags = luv_pipe_optflags(L, 3, 0);
   int ret = uv_pipe_bind2(handle, name, namelen, flags);
@@ -90,9 +86,9 @@ static int luv_pipe_bind2(lua_State* L) {
 }
 
 static int luv_pipe_connect2(lua_State* L) {
-  size_t namelen;
   luv_ctx_t* ctx = luv_context(L);
   uv_pipe_t* handle = luv_check_pipe(L, 1);
+  size_t namelen;
   const char* name = luaL_checklstring(L, 2, &namelen);
   unsigned int flags = luv_pipe_optflags(L, 3, 0);
   int ref = luv_check_continuation(L, 4);
@@ -105,10 +101,11 @@ static int luv_pipe_connect2(lua_State* L) {
 
 static int luv_pipe_getsockname(lua_State* L) {
   uv_pipe_t* handle = luv_check_pipe(L, 1);
-  size_t len = 2*PATH_MAX;
-  char buf[2*PATH_MAX];
+  size_t len = 2 * PATH_MAX;
+  char buf[2 * PATH_MAX];
   int ret = uv_pipe_getsockname(handle, buf, &len);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushlstring(L, buf, len);
   return 1;
 }
@@ -116,10 +113,11 @@ static int luv_pipe_getsockname(lua_State* L) {
 #if LUV_UV_VERSION_GEQ(1, 3, 0)
 static int luv_pipe_getpeername(lua_State* L) {
   uv_pipe_t* handle = luv_check_pipe(L, 1);
-  size_t len = 2*PATH_MAX;
-  char buf[2*PATH_MAX];
+  size_t len = 2 * PATH_MAX;
+  char buf[2 * PATH_MAX];
   int ret = uv_pipe_getpeername(handle, buf, &len);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushlstring(L, buf, len);
   return 1;
 }
@@ -143,56 +141,68 @@ static int luv_pipe_pending_type(lua_State* L) {
   uv_handle_type type = uv_pipe_pending_type(handle);
   const char* type_name;
   switch (type) {
-#define XX(uc, lc) \
-    case UV_##uc: type_name = #lc; break;
-  UV_HANDLE_TYPE_MAP(XX)
+#define XX(uc, lc)   \
+  case UV_##uc:      \
+    type_name = #lc; \
+    break;
+    UV_HANDLE_TYPE_MAP(XX)
 #undef XX
-    default: return 0;
+    default:
+      return 0;
   }
   lua_pushstring(L, type_name);
   return 1;
 }
 
-#if LUV_UV_VERSION_GEQ(1,16,0)
-static const char *const luv_pipe_chmod_flags[] = {
-  "r", "w", "rw", "wr", NULL
-};
+#if LUV_UV_VERSION_GEQ(1, 16, 0)
+static const char* const luv_pipe_chmod_flags[] = {"r", "w", "rw", "wr", NULL};
 
 static int luv_pipe_chmod(lua_State* L) {
   uv_pipe_t* handle = luv_check_pipe(L, 1);
   int flags;
   switch (luaL_checkoption(L, 2, NULL, luv_pipe_chmod_flags)) {
-  case 0: flags = UV_READABLE; break;
-  case 1: flags = UV_WRITABLE; break;
-  case 2: case 3: flags = UV_READABLE | UV_WRITABLE; break;
-  default: flags = 0; /* unreachable */
+    case 0:
+      flags = UV_READABLE;
+      break;
+    case 1:
+      flags = UV_WRITABLE;
+      break;
+    case 2:
+    case 3:
+      flags = UV_READABLE | UV_WRITABLE;
+      break;
+    default:
+      flags = 0; /* unreachable */
   }
   int ret = uv_pipe_chmod(handle, flags);
   return luv_result(L, ret);
 }
 #endif
 
-#if LUV_UV_VERSION_GEQ(1,41,0)
+#if LUV_UV_VERSION_GEQ(1, 41, 0)
 static int luv_pipe(lua_State* L) {
-  int read_flags = 0, write_flags = 0;
-  uv_file fds[2];
-  int ret;
+  int read_flags = 0;
+  int write_flags = 0;
   if (lua_type(L, 1) == LUA_TTABLE) {
     lua_getfield(L, 1, "nonblock");
-    if (lua_toboolean(L, -1)) read_flags |= UV_NONBLOCK_PIPE;
+    if (lua_toboolean(L, -1))
+      read_flags |= UV_NONBLOCK_PIPE;
     lua_pop(L, 1);
   } else if (!lua_isnoneornil(L, 1)) {
-    luv_arg_type_error(L, 1, "table or nil expected, got %s");
+    luv_typeerror(L, 1, "table or nil");
   }
   if (lua_type(L, 2) == LUA_TTABLE) {
     lua_getfield(L, 2, "nonblock");
-    if (lua_toboolean(L, -1)) write_flags |= UV_NONBLOCK_PIPE;
+    if (lua_toboolean(L, -1))
+      write_flags |= UV_NONBLOCK_PIPE;
     lua_pop(L, 1);
   } else if (!lua_isnoneornil(L, 2)) {
-    luv_arg_type_error(L, 2, "table or nil expected, got %s");
+    luv_typeerror(L, 2, "table or nil");
   }
-  ret = uv_pipe(fds, read_flags, write_flags);
-  if (ret < 0) return luv_error(L, ret);
+  uv_file fds[2];
+  int ret = uv_pipe(fds, read_flags, write_flags);
+  if (ret < 0)
+    return luv_error(L, ret);
   // return as a table with 'read' and 'write' keys containing the corresponding fds
   lua_createtable(L, 0, 2);
   lua_pushinteger(L, fds[0]);

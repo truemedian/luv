@@ -16,42 +16,42 @@
  */
 #ifndef LUV_H
 #define LUV_H
-#include "uv.h"
+#include <assert.h>
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
-
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "uv.h"
+
 #if defined(_WIN32)
-# include <fcntl.h>
-# include <sys/stat.h>
-# include <sys/types.h>
-# ifndef S_ISREG
-#  define S_ISREG(x)  (((x) & _S_IFMT) == _S_IFREG)
-# endif
-# ifndef S_ISDIR
-#  define S_ISDIR(x)  (((x) & _S_IFMT) == _S_IFDIR)
-# endif
-# ifndef S_ISFIFO
-#  define S_ISFIFO(x) (((x) & _S_IFMT) == _S_IFIFO)
-# endif
-# ifndef S_ISCHR
-#  define S_ISCHR(x)  (((x) & _S_IFMT) == _S_IFCHR)
-# endif
-# ifndef S_ISBLK
-#  define S_ISBLK(x)  0
-# endif
-# ifndef S_ISLNK
-#  define S_ISLNK(x)  (((x) & S_IFLNK) == S_IFLNK)
-# endif
-# ifndef S_ISSOCK
-#  define S_ISSOCK(x) 0
-# endif
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#ifndef S_ISREG
+#define S_ISREG(x) (((x) & _S_IFMT) == _S_IFREG)
+#endif
+#ifndef S_ISDIR
+#define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
+#endif
+#ifndef S_ISFIFO
+#define S_ISFIFO(x) (((x) & _S_IFMT) == _S_IFIFO)
+#endif
+#ifndef S_ISCHR
+#define S_ISCHR(x) (((x) & _S_IFMT) == _S_IFCHR)
+#endif
+#ifndef S_ISBLK
+#define S_ISBLK(x) 0
+#endif
+#ifndef S_ISLNK
+#define S_ISLNK(x) (((x) & S_IFLNK) == S_IFLNK)
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
 #else
-# include <unistd.h>
+#include <unistd.h>
 #endif
 
 #ifndef PATH_MAX
@@ -67,9 +67,9 @@
 #endif
 
 // luv flags to control luv_CFpcall routine
-#define LUVF_CALLBACK_NOEXIT       0x01       // Don't exit when LUA_ERRMEM
-#define LUVF_CALLBACK_NOTRACEBACK  0x02       // Don't traceback when error
-#define LUVF_CALLBACK_NOERRMSG     0x04       // Don't output err message
+#define LUVF_CALLBACK_NOEXIT 0x01       // Don't exit when LUA_ERRMEM
+#define LUVF_CALLBACK_NOTRACEBACK 0x02  // Don't traceback when error
+#define LUVF_CALLBACK_NOERRMSG 0x04     // Don't output err message
 
 /* Prototype of external callback routine.
  * The caller and the implementer exchanges data by the lua vm stack.
@@ -86,9 +86,9 @@
  * Need to notice that the implementer must balance the lua vm stack, and maybe
  * exit when memory allocation error.
  */
-typedef int (*luv_CFpcall) (lua_State* L, int nargs, int nresults, int flags);
+typedef int (*luv_CFpcall)(lua_State* L, int nargs, int nresults, int flags);
 
-typedef int (*luv_CFcpcall) (lua_State* L, lua_CFunction func, void* ud, int flags);
+typedef int (*luv_CFcpcall)(lua_State* L, lua_CFunction func, void* ud, int flags);
 
 /* Default implementation of event callback */
 LUALIB_API int luv_cfpcall(lua_State* L, int nargs, int nresult, int flags);
@@ -97,17 +97,17 @@ LUALIB_API int luv_cfpcall(lua_State* L, int nargs, int nresult, int flags);
 LUALIB_API int luv_cfcpcall(lua_State* L, lua_CFunction func, void* ud, int flags);
 
 typedef struct {
-  uv_loop_t*   loop;        /* main loop */
-  lua_State*   L;           /* main thread,ensure coroutines works */
-  luv_CFpcall  cb_pcall;    /* luv event callback function in protected mode */
-  luv_CFpcall  thrd_pcall;  /* luv thread function in protected mode*/
+  uv_loop_t* loop;          /* main loop */
+  lua_State* L;             /* main thread,ensure coroutines works */
+  luv_CFpcall cb_pcall;     /* luv event callback function in protected mode */
+  luv_CFpcall thrd_pcall;   /* luv thread function in protected mode*/
   luv_CFcpcall thrd_cpcall; /* luv thread c function in protected mode*/
 
-  int          mode;        /* the mode used to run the loop (-1 if not running) */
-  int          ht_ref;      /* bookkeeping: maintain table of luv_handle_t pointers,
-                               to distinguish between internal and external handles */
+  int mode;   /* the mode used to run the loop (-1 if not running) */
+  int ht_ref; /* bookkeeping: maintain table of luv_handle_t pointers,
+                 to distinguish between internal and external handles */
 
-  void* extra;              /* extra data */
+  void* extra; /* extra data */
 } luv_ctx_t;
 
 /* Retrieve all the luv context from a lua_State */
@@ -151,7 +151,7 @@ LUALIB_API void luv_set_cthread(lua_State* L, luv_CFcpcall cpcall);
    This can be called multiple times in a process as long
    as you use a different lua_State and thread for each.
 */
-LUALIB_API int luaopen_luv (lua_State *L);
+LUALIB_API int luaopen_luv(lua_State* L);
 
 typedef lua_State* (*luv_acquire_vm)(void);
 typedef void (*luv_release_vm)(lua_State* L);

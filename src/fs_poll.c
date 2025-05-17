@@ -16,6 +16,7 @@
  */
 
 #include "luv.h"
+#include "private.h"
 
 static uv_fs_poll_t* luv_check_fs_poll(lua_State* L, int index) {
   uv_fs_poll_t* handle = (uv_fs_poll_t*)luv_checkudata(L, index, "uv_fs_poll");
@@ -45,16 +46,14 @@ static void luv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_stat_t* pr
   // prev
   if (prev) {
     luv_push_stats_table(L, prev);
-  }
-  else {
+  } else {
     lua_pushnil(L);
   }
 
   // curr
   if (curr) {
     luv_push_stats_table(L, curr);
-  }
-  else {
+  } else {
     lua_pushnil(L);
   }
 
@@ -65,9 +64,8 @@ static int luv_fs_poll_start(lua_State* L) {
   uv_fs_poll_t* handle = luv_check_fs_poll(L, 1);
   const char* path = luaL_checkstring(L, 2);
   unsigned int interval = luaL_checkinteger(L, 3);
-  int ret;
   luv_check_callback(L, (luv_handle_t*)handle->data, LUV_FS_POLL, 4);
-  ret = uv_fs_poll_start(handle, luv_fs_poll_cb, path, interval);
+  int ret = uv_fs_poll_start(handle, luv_fs_poll_cb, path, interval);
   return luv_result(L, ret);
 }
 
@@ -79,10 +77,11 @@ static int luv_fs_poll_stop(lua_State* L) {
 
 static int luv_fs_poll_getpath(lua_State* L) {
   uv_fs_poll_t* handle = luv_check_fs_poll(L, 1);
-  size_t len = 2*PATH_MAX;
-  char buf[2*PATH_MAX];
+  size_t len = 2 * PATH_MAX;
+  char buf[2 * PATH_MAX];
   int ret = uv_fs_poll_getpath(handle, buf, &len);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushlstring(L, buf, len);
   return 1;
 }

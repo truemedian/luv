@@ -25,16 +25,17 @@ static void* luv_newuserdata(lua_State* L, size_t sz) {
 }
 
 static void* luv_checkudata(lua_State* L, int ud, const char* tname) {
-  return *(void**) luaL_checkudata(L, ud, tname);
+  return *(void**)luaL_checkudata(L, ud, tname);
 }
 
 static uv_handle_t* luv_check_handle(lua_State* L, int index) {
   int isHandle;
   uv_handle_t* handle;
-  void *udata;
+  void* udata;
   // check if input is a userdata
   udata = lua_touserdata(L, index);
-  if (!udata) goto fail;
+  if (!udata)
+    goto fail;
   // "uv_handle" in the registry is a table structured like so:
   // {
   //   [<uv_aync metatable>] = true,
@@ -46,17 +47,21 @@ static uv_handle_t* luv_check_handle(lua_State* L, int index) {
   // when looking the metatable up in the "uv_handle" table.
   lua_getfield(L, LUA_REGISTRYINDEX, "uv_handle");
   isHandle = lua_getmetatable(L, index < 0 ? index - 1 : index);
-  if (!isHandle) goto fail;
+  if (!isHandle)
+    goto fail;
   lua_rawget(L, -2);
   isHandle = lua_toboolean(L, -1);
   lua_pop(L, 2);
-  if (!isHandle) goto fail;
+  if (!isHandle)
+    goto fail;
   // cast the userdata to uv_handle_t
   handle = *(uv_handle_t**)udata;
-  if (!handle->data) goto fail;
+  if (!handle->data)
+    goto fail;
   return handle;
 
-  fail: luaL_argerror(L, index, "Expected uv_handle userdata");
+fail:
+  luaL_argerror(L, index, "Expected uv_handle userdata");
   return NULL;
 }
 
@@ -64,10 +69,15 @@ static uv_handle_t* luv_check_handle(lua_State* L, int index) {
 static int luv_handle_tostring(lua_State* L) {
   uv_handle_t* handle = luv_check_handle(L, 1);
   switch (handle->type) {
-#define XX(uc, lc) case UV_##uc: lua_pushfstring(L, "uv_"#lc"_t: %p", handle); break;
-  UV_HANDLE_TYPE_MAP(XX)
+#define XX(uc, lc)                                  \
+  case UV_##uc:                                     \
+    lua_pushfstring(L, "uv_" #lc "_t: %p", handle); \
+    break;
+    UV_HANDLE_TYPE_MAP(XX)
 #undef XX
-    default: lua_pushfstring(L, "uv_handle_t: %p", handle); break;
+    default:
+      lua_pushfstring(L, "uv_handle_t: %p", handle);
+      break;
   }
   return 1;
 }
@@ -75,7 +85,8 @@ static int luv_handle_tostring(lua_State* L) {
 static int luv_is_active(lua_State* L) {
   uv_handle_t* handle = luv_check_handle(L, 1);
   int ret = uv_is_active(handle);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushboolean(L, ret);
   return 1;
 }
@@ -83,36 +94,10 @@ static int luv_is_active(lua_State* L) {
 static int luv_is_closing(lua_State* L) {
   uv_handle_t* handle = luv_check_handle(L, 1);
   int ret = uv_is_closing(handle);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushboolean(L, ret);
   return 1;
-}
-
-static void luv_handle_free(uv_handle_t* handle);
-
-static void luv_close_cb(uv_handle_t* handle) {
-  lua_State* L;
-  luv_handle_t* data = (luv_handle_t*)handle->data;
-  if (!data) return;
-  L = data->ctx->L;
-  if(data->ref > 0) {
-    luv_call_callback(L, data, LUV_CLOSED, 0);
-    luv_unref_handle(L, data);
-  } else {
-    luv_handle_free(handle);
-  }
-}
-
-static int luv_close(lua_State* L) {
-  uv_handle_t* handle = luv_check_handle(L, 1);
-  if (uv_is_closing(handle)) {
-    luaL_error(L, "handle %p is already closing", handle);
-  }
-  if (!lua_isnoneornil(L, 2)) {
-    luv_check_callback(L, (luv_handle_t*)handle->data, LUV_CLOSED, 2);
-  }
-  uv_close(handle, luv_close_cb);
-  return 0;
 }
 
 static void luv_handle_free(uv_handle_t* handle) {
@@ -133,6 +118,37 @@ static void luv_handle_free(uv_handle_t* handle) {
   free(handle);
 }
 
+static void luv_close_cb(uv_handle_t* handle) {
+  lua_State* L;
+  luv_handle_t* data = (luv_handle_t*)handle->data;
+  if (!data)
+    return;
+  L = data->ctx->L;
+  if (data->ref > 0) {
+    luv_call_callback(L, data, LUV_CLOSED, 0);
+    luv_unref_handle(L, data);
+  } else {
+    luv_handle_free(handle);
+  }
+}
+
+static int luv_close(lua_State* L) {
+  uv_handle_t* handle = luv_check_handle(L, 1);
+  if (uv_is_closing(handle)) {
+    luaL_error(L, "handle %p is already closing", handle);
+  }
+  if (!lua_isnoneornil(L, 2)) {
+    luv_check_callback(L, (luv_handle_t*)handle->data, LUV_CLOSED, 2);
+  }
+  uv_close(handle, luv_close_cb);
+  return 0;
+}
+
+static void luv_gc_cb(uv_handle_t* handle) {
+  luv_close_cb(handle);
+  luv_handle_free(handle);
+}
+
 static int luv_handle_gc(lua_State* L) {
   uv_handle_t** udata = (uv_handle_t**)lua_touserdata(L, 1);
   uv_handle_t* handle = *udata;
@@ -143,8 +159,7 @@ static int luv_handle_gc(lua_State* L) {
     if (!uv_is_closing(handle)) {
       // If the handle is not closed yet, close it first before freeing memory.
       uv_close(handle, luv_handle_free);
-    }
-    else {
+    } else {
       // Otherwise, free the memory right away.
       luv_handle_free(handle);
     }
@@ -174,7 +189,8 @@ static int luv_unref(lua_State* L) {
 static int luv_has_ref(lua_State* L) {
   uv_handle_t* handle = luv_check_handle(L, 1);
   int ret = uv_has_ref(handle);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushboolean(L, ret);
   return 1;
 }
@@ -182,14 +198,14 @@ static int luv_has_ref(lua_State* L) {
 static int luv_send_buffer_size(lua_State* L) {
   uv_handle_t* handle = luv_check_handle(L, 1);
   int value = luaL_optinteger(L, 2, 0);
-  int ret;
-  if (value == 0) { // get
-    ret = uv_send_buffer_size(handle, &value);
-    if (ret < 0) return luv_error(L, ret);
+  if (value == 0) {  // get
+    int ret = uv_send_buffer_size(handle, &value);
+    if (ret < 0)
+      return luv_error(L, ret);
     lua_pushinteger(L, value);
     return 1;
-  } else { // set
-    ret = uv_send_buffer_size(handle, &value);
+  } else {  // set
+    int ret = uv_send_buffer_size(handle, &value);
     return luv_result(L, ret);
   }
 }
@@ -197,14 +213,14 @@ static int luv_send_buffer_size(lua_State* L) {
 static int luv_recv_buffer_size(lua_State* L) {
   uv_handle_t* handle = luv_check_handle(L, 1);
   int value = luaL_optinteger(L, 2, 0);
-  int ret;
-  if (value == 0) { // get
-    ret = uv_recv_buffer_size(handle, &value);
-    if (ret < 0) return luv_error(L, ret);
+  if (value == 0) {  // get
+    int ret = uv_recv_buffer_size(handle, &value);
+    if (ret < 0)
+      return luv_error(L, ret);
     lua_pushinteger(L, value);
     return 1;
-  } else { // set
-    ret = uv_recv_buffer_size(handle, &value);
+  } else {  // set
+    int ret = uv_recv_buffer_size(handle, &value);
     return luv_result(L, ret);
   }
 }
@@ -213,7 +229,8 @@ static int luv_fileno(lua_State* L) {
   uv_handle_t* handle = luv_check_handle(L, 1);
   uv_os_fd_t fd;
   int ret = uv_fileno(handle, &fd);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushinteger(L, (LUA_INTEGER)(ptrdiff_t)fd);
   return 1;
 }

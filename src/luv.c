@@ -19,8 +19,6 @@
 #if (LUA_VERSION_NUM < 503)
 #include "compat-5.3.h"
 #endif
-#include "luv.h"
-
 #include "async.c"
 #include "check.c"
 #include "constants.c"
@@ -33,6 +31,7 @@
 #include "lhandle.c"
 #include "loop.c"
 #include "lreq.c"
+#include "luv.h"
 #include "metrics.c"
 #include "misc.c"
 #include "pipe.c"
@@ -292,7 +291,7 @@ static const luaL_Reg luv_functions[] = {
   {"fs_lchown", luv_fs_lchown},
 #endif
 #if LUV_UV_VERSION_GEQ(1, 14, 0)
-  {"fs_copyfile", luv_fs_copyfile },
+  {"fs_copyfile", luv_fs_copyfile},
 #endif
 #if LUV_UV_VERSION_GEQ(1, 28, 0)
   {"fs_opendir", luv_fs_opendir},
@@ -361,7 +360,7 @@ static const luaL_Reg luv_functions[] = {
 #if LUV_UV_VERSION_GEQ(1, 16, 0)
   {"if_indextoname", luv_if_indextoname},
   {"if_indextoiid", luv_if_indextoiid},
-  {"os_getppid", luv_os_getppid },
+  {"os_getppid", luv_os_getppid},
 #endif
 #if LUV_UV_VERSION_GEQ(1, 18, 0)
   {"os_getpid", luv_os_getpid},
@@ -426,12 +425,12 @@ static const luaL_Reg luv_functions[] = {
   {"new_work", luv_new_work},
   {"queue_work", luv_queue_work},
 
-  // util.c
+// util.c
 #if LUV_UV_VERSION_GEQ(1, 10, 0)
   {"translate_sys_error", luv_translate_sys_error},
 #endif
 
-  // metrics.c
+// metrics.c
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
   {"metrics_idle_time", luv_metrics_idle_time},
 #endif
@@ -439,7 +438,7 @@ static const luaL_Reg luv_functions[] = {
   {"metrics_info", luv_metrics_info},
 #endif
 
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_handle_methods[] = {
@@ -456,38 +455,38 @@ static const luaL_Reg luv_handle_methods[] = {
 #if LUV_UV_VERSION_GEQ(1, 19, 0)
   {"get_type", luv_handle_get_type},
 #endif
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_async_methods[] = {
   {"send", luv_async_send},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_check_methods[] = {
   {"start", luv_check_start},
   {"stop", luv_check_stop},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_fs_event_methods[] = {
   {"start", luv_fs_event_start},
   {"stop", luv_fs_event_stop},
   {"getpath", luv_fs_event_getpath},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_fs_poll_methods[] = {
   {"start", luv_fs_poll_start},
   {"stop", luv_fs_poll_stop},
   {"getpath", luv_fs_poll_getpath},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_idle_methods[] = {
   {"start", luv_idle_start},
   {"stop", luv_idle_stop},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_stream_methods[] = {
@@ -508,7 +507,7 @@ static const luaL_Reg luv_stream_methods[] = {
 #if LUV_UV_VERSION_GEQ(1, 19, 0)
   {"get_write_queue_size", luv_stream_get_write_queue_size},
 #endif
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_pipe_methods[] = {
@@ -529,19 +528,19 @@ static const luaL_Reg luv_pipe_methods[] = {
   {"pending_instances", luv_pipe_pending_instances},
   {"pending_count", luv_pipe_pending_count},
   {"pending_type", luv_pipe_pending_type},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_poll_methods[] = {
   {"start", luv_poll_start},
   {"stop", luv_poll_stop},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_prepare_methods[] = {
   {"start", luv_prepare_start},
   {"stop", luv_prepare_stop},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_process_methods[] = {
@@ -549,7 +548,7 @@ static const luaL_Reg luv_process_methods[] = {
 #if LUV_UV_VERSION_GEQ(1, 19, 0)
   {"get_pid", luv_process_get_pid},
 #endif
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_tcp_methods[] = {
@@ -565,7 +564,7 @@ static const luaL_Reg luv_tcp_methods[] = {
 #if LUV_UV_VERSION_GEQ(1, 32, 0)
   {"close_reset", luv_tcp_close_reset},
 #endif
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_timer_methods[] = {
@@ -577,13 +576,13 @@ static const luaL_Reg luv_timer_methods[] = {
 #if LUV_UV_VERSION_GEQ(1, 40, 0)
   {"get_due_in", luv_timer_get_due_in},
 #endif
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_tty_methods[] = {
   {"set_mode", luv_tty_set_mode},
   {"get_winsize", luv_tty_get_winsize},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_udp_methods[] = {
@@ -612,20 +611,20 @@ static const luaL_Reg luv_udp_methods[] = {
   {"connect", luv_udp_connect},
   {"getpeername", luv_udp_getpeername},
 #endif
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static const luaL_Reg luv_signal_methods[] = {
   {"start", luv_signal_start},
   {"stop", luv_signal_stop},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 #if LUV_UV_VERSION_GEQ(1, 28, 0)
 static const luaL_Reg luv_dir_methods[] = {
   {"readdir", luv_fs_readdir},
   {"closedir", luv_fs_closedir},
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static void luv_dir_init(lua_State* L) {
@@ -641,19 +640,18 @@ static void luv_dir_init(lua_State* L) {
 #endif
 
 static void luv_handle_init(lua_State* L) {
-
   lua_newtable(L);
-#define XX(uc, lc)                             \
-    luaL_newmetatable (L, "uv_"#lc);           \
-    lua_pushcfunction(L, luv_handle_tostring); \
-    lua_setfield(L, -2, "__tostring");         \
-    lua_pushcfunction(L, luv_handle_gc);       \
-    lua_setfield(L, -2, "__gc");               \
-    luaL_newlib(L, luv_##lc##_methods);        \
-    luaL_setfuncs(L, luv_handle_methods, 0);   \
-    lua_setfield(L, -2, "__index");            \
-    lua_pushboolean(L, 1);                     \
-    lua_rawset(L, -3);
+#define XX(uc, lc)                           \
+  luaL_newmetatable(L, "uv_" #lc);           \
+  lua_pushcfunction(L, luv_handle_tostring); \
+  lua_setfield(L, -2, "__tostring");         \
+  lua_pushcfunction(L, luv_handle_gc);       \
+  lua_setfield(L, -2, "__gc");               \
+  luaL_newlib(L, luv_##lc##_methods);        \
+  luaL_setfuncs(L, luv_handle_methods, 0);   \
+  lua_setfield(L, -2, "__index");            \
+  lua_pushboolean(L, 1);                     \
+  lua_rawset(L, -3);
 
   UV_HANDLE_TYPE_MAP(XX)
 #undef XX
@@ -691,7 +689,7 @@ static const luaL_Reg luv_req_methods[] = {
 #if LUV_UV_VERSION_GEQ(1, 19, 0)
   {"get_type", luv_req_get_type},
 #endif
-  {NULL, NULL}
+  {NULL, NULL},
 };
 
 static void luv_req_init(lua_State* L) {
@@ -717,55 +715,52 @@ static void luv_req_init(lua_State* L) {
 // values according to nresults. When error occurs, it will print error message
 // to stderr, and memory allocation error will cause exit.
 LUALIB_API int luv_cfpcall(lua_State* L, int nargs, int nresult, int flags) {
-  int ret, top, errfunc;
+  int errfunc;
 
-  top  = lua_gettop(L);
+  int top = lua_gettop(L);
   // Get the traceback function in case of error
-  if ((flags & (LUVF_CALLBACK_NOTRACEBACK|LUVF_CALLBACK_NOERRMSG) ) == 0)
-  {
+  if ((flags & (LUVF_CALLBACK_NOTRACEBACK | LUVF_CALLBACK_NOERRMSG)) == 0) {
     lua_pushcfunction(L, luv_traceback);
     errfunc = lua_gettop(L);
     // And insert it before the function and args
     lua_insert(L, -2 - nargs);
-    errfunc -= (nargs+1);
-  }else
+    errfunc -= (nargs + 1);
+  } else {
     errfunc = 0;
-
-  ret = lua_pcall(L, nargs, nresult, errfunc);
-  switch (ret) {
-  case LUA_OK:
-    break;
-  case LUA_ERRMEM:
-    if ((flags & LUVF_CALLBACK_NOERRMSG) == 0) {
-      fprintf(stderr, "System Error: %s\n",
-              luaL_tolstring(L, lua_absindex(L, -1), NULL));
-      lua_pop(L, 1); // Remove error string pushed by luaL_tolstring()
-    }
-    if ((flags & LUVF_CALLBACK_NOEXIT) == 0)
-      exit(-1);
-    lua_pop(L, 1);
-    ret = -ret;
-    break;
-  case LUA_ERRRUN:
-  case LUA_ERRERR:
-  default:
-    if ((flags & LUVF_CALLBACK_NOERRMSG) == 0) {
-      fprintf(stderr, "Uncaught Error: %s\n",
-              luaL_tolstring(L, lua_absindex(L, -1), NULL));
-      lua_pop(L, 1); // Remove error string pushed by luaL_tolstring()
-    }
-    if ((flags & LUVF_CALLBACK_NOEXIT) == 0)
-      exit(-1);
-    lua_pop(L, 1);
-    ret = -ret;
-    break;
   }
-  if ((flags & (LUVF_CALLBACK_NOTRACEBACK|LUVF_CALLBACK_NOERRMSG) ) == 0)
-  {
+
+  int ret = lua_pcall(L, nargs, nresult, errfunc);
+  switch (ret) {
+    case LUA_OK:
+      break;
+    case LUA_ERRMEM:
+      if ((flags & LUVF_CALLBACK_NOERRMSG) == 0) {
+        fprintf(stderr, "System Error: %s\n", luaL_tolstring(L, lua_absindex(L, -1), NULL));
+        lua_pop(L, 1);  // Remove error string pushed by luaL_tolstring()
+      }
+      if ((flags & LUVF_CALLBACK_NOEXIT) == 0)
+        exit(-1);
+      lua_pop(L, 1);
+      ret = -ret;
+      break;
+    case LUA_ERRRUN:
+    case LUA_ERRERR:
+    default:
+      if ((flags & LUVF_CALLBACK_NOERRMSG) == 0) {
+        fprintf(stderr, "Uncaught Error: %s\n", luaL_tolstring(L, lua_absindex(L, -1), NULL));
+        lua_pop(L, 1);  // Remove error string pushed by luaL_tolstring()
+      }
+      if ((flags & LUVF_CALLBACK_NOEXIT) == 0)
+        exit(-1);
+      lua_pop(L, 1);
+      ret = -ret;
+      break;
+  }
+  if ((flags & (LUVF_CALLBACK_NOTRACEBACK | LUVF_CALLBACK_NOERRMSG)) == 0) {
     lua_remove(L, errfunc);
   }
   if (ret == LUA_OK) {
-    if(nresult == LUA_MULTRET)
+    if (nresult == LUA_MULTRET)
       nresult = lua_gettop(L) - top + nargs + 1;
     return nresult;
   }
@@ -774,7 +769,7 @@ LUALIB_API int luv_cfpcall(lua_State* L, int nargs, int nresult, int flags) {
 
 // Call lua c function in protected mode. When error occurs, it will print
 // error message to stderr, and memory allocation error will cause exit.
-LUALIB_API int luv_cfcpcall(lua_State* L, lua_CFunction func, void * ud, int flags) {
+LUALIB_API int luv_cfcpcall(lua_State* L, lua_CFunction func, void* ud, int flags) {
   lua_pushcfunction(L, func);
   lua_pushlightuserdata(L, ud);
   int ret = luv_cfpcall(L, 1, 0, flags);
@@ -786,22 +781,20 @@ static const char* luv_ctx_key = "luv_context";
 
 // Please look at luv_ctx_t in luv.h
 LUALIB_API luv_ctx_t* luv_context(lua_State* L) {
-  luv_ctx_t* ctx;
   lua_pushstring(L, luv_ctx_key);
   lua_rawget(L, LUA_REGISTRYINDEX);
-  if (lua_isnil(L, -1)) {
-    // create it if not exist in registry
-    lua_pushstring(L, luv_ctx_key);
-    ctx = (luv_ctx_t*)lua_newuserdata(L, sizeof(*ctx));
-    memset(ctx, 0, sizeof(*ctx));
-    lua_rawset(L, LUA_REGISTRYINDEX);
-    // create table to contain internal handle
-    lua_newtable(L);
-    ctx->ht_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  } else {
-    ctx = (luv_ctx_t*)lua_touserdata(L, -1);
+  if (!lua_isnil(L, -1)) {
+    return (luv_ctx_t*)lua_touserdata(L, -1);
   }
-  lua_pop(L, 1);
+
+  // create it if not exist in registry
+  lua_pushstring(L, luv_ctx_key);
+  luv_ctx_t* ctx = (luv_ctx_t*)lua_newuserdata(L, sizeof(*ctx));
+  memset(ctx, 0, sizeof(*ctx));
+  lua_rawset(L, LUA_REGISTRYINDEX);
+  // create table to contain internal handle
+  lua_newtable(L);
+  ctx->ht_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   return ctx;
 }
 
@@ -840,18 +833,17 @@ LUALIB_API void luv_set_cthread(lua_State* L, luv_CFcpcall cpcall) {
   ctx->thrd_cpcall = cpcall;
 }
 
-static void walk_cb(uv_handle_t *handle, void *arg)
-{
+static void walk_cb(uv_handle_t* handle, void* arg) {
   (void)arg;
   if (!uv_is_closing(handle)) {
     uv_close(handle, luv_close_cb);
   }
 }
 
-static int loop_gc(lua_State *L) {
-  luv_ctx_t *ctx = luv_context(L);
+static int loop_gc(lua_State* L) {
+  luv_ctx_t* ctx = luv_context(L);
   uv_loop_t* loop = ctx->loop;
-  if (loop==NULL)
+  if (loop == NULL)
     return 0;
   // Call uv_close on every active handle
   uv_walk(loop, walk_cb, NULL);
@@ -862,7 +854,7 @@ static int loop_gc(lua_State *L) {
   return 0;
 }
 
-LUALIB_API int luaopen_luv (lua_State* L) {
+LUALIB_API int luaopen_luv(lua_State* L) {
 #ifdef LUA_RIDX_MAINTHREAD
   // Lua 5.2+ - resolve the main thread of the current Lua state, even if
   // we were loaded from a different thread (which may become suspended/dead).
@@ -877,10 +869,7 @@ LUALIB_API int luaopen_luv (lua_State* L) {
   luaL_newlib(L, luv_functions);
 
   // loop is NULL, luv need to create an inner loop
-  if (ctx->loop==NULL) {
-    int ret;
-    uv_loop_t* loop;
-
+  if (ctx->loop == NULL) {
     // Setup the uv_loop meta table for a proper __gc
     luaL_newmetatable(L, "uv_loop.meta");
     lua_pushstring(L, "__gc");
@@ -889,7 +878,7 @@ LUALIB_API int luaopen_luv (lua_State* L) {
     lua_pop(L, 1);
 
     lua_pushstring(L, "_loop");
-    loop = (uv_loop_t*)lua_newuserdata(L, sizeof(*loop));
+    uv_loop_t* loop = (uv_loop_t*)lua_newuserdata(L, sizeof(*loop));
     // setup the userdata's metatable for __gc
     luaL_getmetatable(L, "uv_loop.meta");
     lua_setmetatable(L, -2);
@@ -902,22 +891,22 @@ LUALIB_API int luaopen_luv (lua_State* L) {
     ctx->L = ctxL;
     ctx->mode = -1;
 
-    ret = uv_loop_init(loop);
+    int ret = uv_loop_init(loop);
     if (ret < 0) {
       return luaL_error(L, "%s: %s\n", uv_err_name(ret), uv_strerror(ret));
     }
   }
   // pcall is NULL, luv use default callback routine
-  if (ctx->cb_pcall==NULL) {
+  if (ctx->cb_pcall == NULL) {
     ctx->cb_pcall = luv_cfpcall;
   }
 
   // pcall is NULL, luv use default thread routine
-  if (ctx->thrd_pcall==NULL) {
+  if (ctx->thrd_pcall == NULL) {
     ctx->thrd_pcall = luv_cfpcall;
   }
 
-  if (ctx->thrd_cpcall==NULL) {
+  if (ctx->thrd_cpcall == NULL) {
     ctx->thrd_cpcall = luv_cfcpcall;
   }
 
@@ -933,9 +922,9 @@ LUALIB_API int luaopen_luv (lua_State* L) {
   luv_constants(L);
   lua_setfield(L, -2, "constants");
 
-#define XX(code, _)                 \
-  lua_pushliteral(L, #code);        \
-  lua_pushinteger(L, UV_ ## code);  \
+#define XX(code, _)              \
+  lua_pushliteral(L, #code);     \
+  lua_pushinteger(L, UV_##code); \
   lua_rawset(L, -3);
 
   lua_newtable(L);

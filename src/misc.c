@@ -23,27 +23,33 @@
 static int luv_guess_handle(lua_State* L) {
   uv_file file = luaL_checkinteger(L, 1);
   switch (uv_guess_handle(file)) {
-#define XX(uc, lc) case UV_##uc: lua_pushstring(L, #lc); break;
-  UV_HANDLE_TYPE_MAP(XX)
+#define XX(uc, lc)          \
+  case UV_##uc:             \
+    lua_pushstring(L, #lc); \
+    break;
+    UV_HANDLE_TYPE_MAP(XX)
 #undef XX
-    case UV_FILE: lua_pushstring(L, "file"); break;
-    default: return 0;
+    case UV_FILE:
+      lua_pushstring(L, "file");
+      break;
+    default:
+      return 0;
   }
   return 1;
 }
 
 static int luv_version(lua_State* L) {
- lua_pushinteger(L, uv_version());
- return 1;
+  lua_pushinteger(L, uv_version());
+  return 1;
 }
 
 static int luv_version_string(lua_State* L) {
- lua_pushstring(L, uv_version_string());
- return 1;
+  lua_pushstring(L, uv_version_string());
+  return 1;
 }
 
 // requires the value at idx to be a string or number
-static void luv_prep_buf(lua_State *L, int idx, uv_buf_t *pbuf) {
+static void luv_prep_buf(lua_State* L, int idx, uv_buf_t* pbuf) {
   size_t len;
   // note: if the value is a number, lua_tolstring converts the stack value to a string
   pbuf->base = (char*)lua_tolstring(L, idx, &len);
@@ -54,18 +60,18 @@ static void luv_prep_buf(lua_State *L, int idx, uv_buf_t *pbuf) {
 // - if refs is non-NULL, then *refs is set to a heap-allocated, LUA_NOREF-terminated array
 //   of ref integers (refs are to each string in the bufs)
 // returns: heap-allocated array of uv_buf_t
-static uv_buf_t* luv_prep_bufs(lua_State* L, int index, size_t *count, int **refs) {
-  uv_buf_t *bufs;
-  size_t i;
+static uv_buf_t* luv_prep_bufs(lua_State* L, int index, size_t* count, int** refs) {
   *count = lua_rawlen(L, index);
-  bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t) * *count);
-  int *refs_array = NULL;
+  uv_buf_t* bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t) * *count);
+  int* refs_array = NULL;
   if (refs)
     refs_array = (int*)malloc(sizeof(int) * (*count + 1));
-  for (i = 0; i < *count; ++i) {
+  for (size_t i = 0; i < *count; ++i) {
     lua_rawgeti(L, index, i + 1);
     if (!lua_isstring(L, -1)) {
-      luaL_argerror(L, index, lua_pushfstring(L, "expected table of strings, found %s in the table", luaL_typename(L, -1)));
+      luaL_argerror(
+        L, index, lua_pushfstring(L, "expected table of strings, found %s in the table", luaL_typename(L, -1))
+      );
       return NULL;
     }
     luv_prep_buf(L, -1, &bufs[i]);
@@ -95,16 +101,16 @@ static uv_buf_t* luv_check_bufs(lua_State* L, int index, size_t* count, luv_req_
     bufs = luv_prep_bufs(L, index, count, &refs);
     req_data->data = refs;
     req_data->data_ref = LUV_REQ_MULTIREF;
-  }
-  else if (lua_isstring(L, index)) {
+  } else if (lua_isstring(L, index)) {
     *count = 1;
     bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t));
     luv_prep_buf(L, index, bufs);
     lua_pushvalue(L, index);
     req_data->data_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
-  else {
-    luaL_argerror(L, index, lua_pushfstring(L, "data must be string or table of strings, got %s", luaL_typename(L, index)));
+  } else {
+    luaL_argerror(
+      L, index, lua_pushfstring(L, "data must be string or table of strings, got %s", luaL_typename(L, index))
+    );
   }
   return bufs;
 }
@@ -115,14 +121,14 @@ static uv_buf_t* luv_check_bufs_noref(lua_State* L, int index, size_t* count) {
   uv_buf_t* bufs = NULL;
   if (lua_istable(L, index)) {
     bufs = luv_prep_bufs(L, index, count, NULL);
-  }
-  else if (lua_isstring(L, index)) {
+  } else if (lua_isstring(L, index)) {
     *count = 1;
     bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t));
     luv_prep_buf(L, index, bufs);
-  }
-  else {
-    luaL_argerror(L, index, lua_pushfstring(L, "data must be string or table of strings, got %s", luaL_typename(L, index)));
+  } else {
+    luaL_argerror(
+      L, index, lua_pushfstring(L, "data must be string or table of strings, got %s", luaL_typename(L, index))
+    );
   }
   return bufs;
 }
@@ -130,7 +136,8 @@ static uv_buf_t* luv_check_bufs_noref(lua_State* L, int index, size_t* count) {
 static int luv_get_process_title(lua_State* L) {
   char title[MAX_TITLE_LENGTH];
   int ret = uv_get_process_title(title, MAX_TITLE_LENGTH);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushstring(L, title);
   return 1;
 }
@@ -144,7 +151,8 @@ static int luv_set_process_title(lua_State* L) {
 static int luv_resident_set_memory(lua_State* L) {
   size_t rss;
   int ret = uv_resident_set_memory(&rss);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushinteger(L, rss);
   return 1;
 }
@@ -152,7 +160,8 @@ static int luv_resident_set_memory(lua_State* L) {
 static int luv_uptime(lua_State* L) {
   double uptime;
   int ret = uv_uptime(&uptime);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushnumber(L, uptime);
   return 1;
 }
@@ -220,16 +229,18 @@ static void luv_push_rusage_table(lua_State* L, const uv_rusage_t* rusage) {
 static int luv_getrusage(lua_State* L) {
   uv_rusage_t rusage;
   int ret = uv_getrusage(&rusage);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   luv_push_rusage_table(L, &rusage);
   return 1;
 }
 
 #if LUV_UV_VERSION_GEQ(1, 50, 0)
-static int luv_getrusage_thread(lua_State *L) {
+static int luv_getrusage_thread(lua_State* L) {
   uv_rusage_t rusage;
   int ret = uv_getrusage_thread(&rusage);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   luv_push_rusage_table(L, &rusage);
   return 1;
 }
@@ -244,16 +255,15 @@ static int luv_available_parallelism(lua_State* L) {
 
 static int luv_cpu_info(lua_State* L) {
   uv_cpu_info_t* cpu_infos = NULL;
-  int count = 0, i;
+  int count = 0;
   int ret = uv_cpu_info(&cpu_infos, &count);
-  if (ret < 0)
-  {
+  if (ret < 0) {
     uv_free_cpu_info(cpu_infos, count);
     return luv_error(L, ret);
   }
   lua_newtable(L);
 
-  for (i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     lua_newtable(L);
     lua_pushstring(L, cpu_infos[i].model);
     lua_setfield(L, -2, "model");
@@ -280,7 +290,7 @@ static int luv_cpu_info(lua_State* L) {
 
 static int luv_interface_addresses(lua_State* L) {
   uv_interface_address_t* interfaces;
-  int count, i;
+  int count;
   char ip[INET6_ADDRSTRLEN];
   char netmask[INET6_ADDRSTRLEN];
 
@@ -288,7 +298,7 @@ static int luv_interface_addresses(lua_State* L) {
 
   lua_newtable(L);
 
-  for (i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     lua_getfield(L, -1, interfaces[i].name);
     if (!lua_istable(L, -1)) {
       lua_pop(L, 1);
@@ -320,7 +330,7 @@ static int luv_interface_addresses(lua_State* L) {
 
     lua_pushstring(L, luv_af_num_to_string(interfaces[i].address.address4.sin_family));
     lua_setfield(L, -2, "family");
-    lua_rawseti(L, -2, lua_rawlen (L, -2) + 1);
+    lua_rawseti(L, -2, lua_rawlen(L, -2) + 1);
     lua_pop(L, 1);
   }
   uv_free_interface_addresses(interfaces, count);
@@ -337,19 +347,21 @@ static int luv_loadavg(lua_State* L) {
 }
 
 static int luv_exepath(lua_State* L) {
-  size_t size = 2*PATH_MAX;
-  char exe_path[2*PATH_MAX];
+  size_t size = 2 * PATH_MAX;
+  char exe_path[2 * PATH_MAX];
   int ret = uv_exepath(exe_path, &size);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushlstring(L, exe_path, size);
   return 1;
 }
 
 static int luv_cwd(lua_State* L) {
-  size_t size = 2*PATH_MAX;
-  char path[2*PATH_MAX];
+  size_t size = 2 * PATH_MAX;
+  char path[2 * PATH_MAX];
   int ret = uv_cwd(path, &size);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushlstring(L, path, size);
   return 1;
 }
@@ -361,19 +373,21 @@ static int luv_chdir(lua_State* L) {
 
 #if LUV_UV_VERSION_GEQ(1, 9, 0)
 static int luv_os_tmpdir(lua_State* L) {
-  size_t size = 2*PATH_MAX;
-  char tmpdir[2*PATH_MAX];
+  size_t size = 2 * PATH_MAX;
+  char tmpdir[2 * PATH_MAX];
   int ret = uv_os_tmpdir(tmpdir, &size);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushlstring(L, tmpdir, size);
   return 1;
 }
 
 static int luv_os_homedir(lua_State* L) {
-  size_t size = 2*PATH_MAX;
-  char homedir[2*PATH_MAX];
+  size_t size = 2 * PATH_MAX;
+  char homedir[2 * PATH_MAX];
   int ret = uv_os_homedir(homedir, &size);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushlstring(L, homedir, size);
   return 1;
 }
@@ -381,7 +395,8 @@ static int luv_os_homedir(lua_State* L) {
 static int luv_os_get_passwd(lua_State* L) {
   uv_passwd_t pwd;
   int ret = uv_os_get_passwd(&pwd);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_newtable(L);
   if (pwd.username) {
     lua_pushstring(L, pwd.username);
@@ -431,26 +446,26 @@ static int luv_hrtime(lua_State* L) {
   return 1;
 }
 
-static int luv_getpid(lua_State* L){
+static int luv_getpid(lua_State* L) {
   int pid = getpid();
   lua_pushinteger(L, pid);
   return 1;
 }
 
 #ifndef _WIN32
-static int luv_getuid(lua_State* L){
+static int luv_getuid(lua_State* L) {
   int uid = getuid();
   lua_pushinteger(L, uid);
   return 1;
 }
 
-static int luv_getgid(lua_State* L){
+static int luv_getgid(lua_State* L) {
   int gid = getgid();
   lua_pushinteger(L, gid);
   return 1;
 }
 
-static int luv_setuid(lua_State* L){
+static int luv_setuid(lua_State* L) {
   int uid = luaL_checkinteger(L, 1);
   int r = setuid(uid);
   if (-1 == r) {
@@ -459,7 +474,7 @@ static int luv_setuid(lua_State* L){
   return 0;
 }
 
-static int luv_setgid(lua_State* L){
+static int luv_setgid(lua_State* L) {
   int gid = luaL_checkinteger(L, 1);
   int r = setgid(gid);
   if (-1 == r) {
@@ -469,13 +484,13 @@ static int luv_setgid(lua_State* L){
 }
 
 #if LUV_UV_VERSION_GEQ(1, 8, 0)
-static int luv_print_all_handles(lua_State* L){
+static int luv_print_all_handles(lua_State* L) {
   luv_ctx_t* ctx = luv_context(L);
   uv_print_all_handles(ctx->loop, stderr);
   return 0;
 }
 
-static int luv_print_active_handles(lua_State* L){
+static int luv_print_active_handles(lua_State* L) {
   luv_ctx_t* ctx = luv_context(L);
   uv_print_active_handles(ctx->loop, stderr);
   return 0;
@@ -487,7 +502,7 @@ static int luv_print_active_handles(lua_State* L){
 static int luv_os_getenv(lua_State* L) {
   const char* name = luaL_checkstring(L, 1);
   size_t size = luaL_optinteger(L, 2, LUAL_BUFFERSIZE);
-  char *buff = malloc(size);
+  char* buff = malloc(size);
   int ret = uv_os_getenv(name, buff, &size);
   if (ret == 0) {
     lua_pushlstring(L, buff, size);
@@ -530,8 +545,7 @@ static int luv_os_gethostname(lua_State* L) {
   if (ret == 0) {
     lua_pushlstring(L, hostname, size);
     ret = 1;
-  }
-  else
+  } else
     ret = luv_error(L, ret);
   return ret;
 }
@@ -548,8 +562,7 @@ static int luv_if_indextoname(lua_State* L) {
   if (ret == 0) {
     lua_pushlstring(L, scoped_addr, scoped_addr_len);
     ret = 1;
-  }
-  else
+  } else
     ret = luv_error(L, ret);
   return ret;
 }
@@ -563,8 +576,7 @@ static int luv_if_indextoiid(lua_State* L) {
   if (ret == 0) {
     lua_pushlstring(L, interface_id, interface_id_len);
     ret = 1;
-  }
-  else
+  } else
     ret = luv_error(L, ret);
   return ret;
 }
@@ -590,8 +602,7 @@ static int luv_os_getpriority(lua_State* L) {
   if (ret == 0) {
     lua_pushnumber(L, priority);
     ret = 1;
-  }
-  else {
+  } else {
     ret = luv_error(L, ret);
   }
   return ret;
@@ -601,13 +612,12 @@ static int luv_os_getpriority(lua_State* L) {
 #if LUV_UV_VERSION_GEQ(1, 23, 0)
 static int luv_os_setpriority(lua_State* L) {
   uv_pid_t pid = luaL_checkinteger(L, 1);
-  int priority= luaL_checkinteger(L, 2);
+  int priority = luaL_checkinteger(L, 2);
   int ret = uv_os_setpriority(pid, priority);
   if (ret == 0) {
     lua_pushboolean(L, 1);
     ret = 1;
-  }
-  else
+  } else
     ret = luv_error(L, ret);
   return ret;
 }
@@ -629,8 +639,7 @@ static int luv_os_uname(lua_State* L) {
     lua_pushstring(L, uname.machine);
     lua_setfield(L, -2, "machine");
     ret = 1;
-  }
-  else
+  } else
     ret = luv_error(L, ret);
   return ret;
 }
@@ -638,11 +647,10 @@ static int luv_os_uname(lua_State* L) {
 
 #if LUV_UV_VERSION_GEQ(1, 28, 0)
 static int luv_gettimeofday(lua_State* L) {
-  uv_timeval64_t tv = { 0 };
+  uv_timeval64_t tv = {0};
 
   int ret = uv_gettimeofday(&tv);
-  if (ret == 0)
-  {
+  if (ret == 0) {
 #if defined(__LP64__)
     lua_pushinteger(L, tv.tv_sec);
 #else
@@ -650,8 +658,7 @@ static int luv_gettimeofday(lua_State* L) {
 #endif
     lua_pushinteger(L, tv.tv_usec);
     return 2;
-  }
-  else
+  } else
     ret = luv_error(L, ret);
   return ret;
 }
@@ -659,12 +666,12 @@ static int luv_gettimeofday(lua_State* L) {
 
 #if LUV_UV_VERSION_GEQ(1, 31, 0)
 static int luv_os_environ(lua_State* L) {
-  int i, ret, envcount;
+  int envcount;
   uv_env_item_t* envitems;
-  ret = uv_os_environ(&envitems, &envcount);
-  if (ret==0) {
+  int ret = uv_os_environ(&envitems, &envcount);
+  if (ret == 0) {
     lua_newtable(L);
-    for(i=0; i<envcount; i++) {
+    for (int i = 0; i < envcount; i++) {
       lua_pushstring(L, envitems[i].name);
       lua_pushstring(L, envitems[i].value);
       lua_rawset(L, -3);
@@ -699,8 +706,7 @@ static void luv_random_cb(uv_random_t* req, int status, void* buf, size_t buflen
   if (status < 0) {
     luv_status(L, status);
     nargs = 1;
-  }
-  else {
+  } else {
     lua_pushnil(L);
     lua_pushlstring(L, (const char*)buf, buflen);
     nargs = 2;
@@ -724,12 +730,10 @@ static int luv_random(lua_State* L) {
   unsigned int flags = 0;
   if (lua_type(L, 2) == LUA_TNUMBER || lua_isnoneornil(L, 2)) {
     flags = (unsigned int)luaL_optinteger(L, 2, 0);
-  }
-  else if (lua_type(L, 2) == LUA_TTABLE) {
+  } else if (lua_type(L, 2) == LUA_TTABLE) {
     // this is for forwards-compatibility: if flags ever get added,
     // we want to be able to take a table
-  }
-  else {
+  } else {
     return luaL_argerror(L, 2, "expected nil, integer, or table");
   }
 
@@ -745,8 +749,7 @@ static int luv_random(lua_State* L) {
     }
     lua_pushlstring(L, (const char*)buf, buflen);
     return 1;
-  }
-  else {
+  } else {
     // ref buffer
     int buf_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
@@ -768,7 +771,8 @@ static int luv_random(lua_State* L) {
 #if LUV_UV_VERSION_GEQ(1, 45, 0)
 static int luv_cpumask_size(lua_State* L) {
   int ret = uv_cpumask_size();
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushinteger(L, ret);
   return 1;
 }
@@ -779,15 +783,14 @@ static int luv_get_available_memory(lua_State* L) {
 }
 
 // These are the same order as uv_clock_id which also starts at 0
-static const char *const luv_clock_id_opts[] = {
-  "monotonic", "realtime", NULL
-};
+static const char* const luv_clock_id_opts[] = {"monotonic", "realtime", NULL};
 
 static int luv_clock_gettime(lua_State* L) {
   uv_clock_id clock_id = (uv_clock_id)luaL_checkoption(L, 1, NULL, luv_clock_id_opts);
   uv_timespec64_t timespec;
   int ret = uv_clock_gettime(clock_id, &timespec);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_createtable(L, 0, 2);
   lua_pushinteger(L, timespec.tv_sec);
   lua_setfield(L, -2, "sec");
@@ -801,26 +804,25 @@ static int luv_clock_gettime(lua_State* L) {
 
 static int luv_utf16_length_as_wtf8(lua_State* L) {
   size_t sz;
-  const uint16_t *utf16 = (const uint16_t *)luaL_checklstring(L, 1, &sz);
-  ssize_t utf16_len = sz/2;
+  const uint16_t* utf16 = (const uint16_t*)luaL_checklstring(L, 1, &sz);
+  ssize_t utf16_len = sz / 2;
   sz = uv_utf16_length_as_wtf8(utf16, utf16_len);
   lua_pushinteger(L, sz);
   return 1;
 }
 
-static int luv_utf16_to_wtf8(lua_State *L) {
-  int ret;
+static int luv_utf16_to_wtf8(lua_State* L) {
   size_t sz;
-  char *wtf8;
-  const uint16_t *utf16 = (const uint16_t *)luaL_checklstring(L, 1, &sz);
-  ssize_t utf16_len = sz/2;
+  const uint16_t* utf16 = (const uint16_t*)luaL_checklstring(L, 1, &sz);
+  ssize_t utf16_len = sz / 2;
   /* Note: Since `utf16_len` is provided, `sz` does not include a NUL terminator */
   sz = uv_utf16_length_as_wtf8(utf16, utf16_len);
   /* The wtf8_ptr must contain an extra space for an extra NUL after the result */
-  wtf8 = malloc(sz + 1);
-  if (wtf8 == NULL) return luaL_error(L, "failed to allocate %zu bytes", sz + 1);
+  char* wtf8 = malloc(sz + 1);
+  if (wtf8 == NULL)
+    return luaL_error(L, "failed to allocate %zu bytes", sz + 1);
   /* Note: On success, *sz will not be modified */
-  ret = uv_utf16_to_wtf8(utf16, utf16_len, &wtf8, &sz);
+  int ret = uv_utf16_to_wtf8(utf16, utf16_len, &wtf8, &sz);
   if (ret == 0) {
     lua_pushlstring(L, wtf8, sz);
     ret = 1;
@@ -831,7 +833,7 @@ static int luv_utf16_to_wtf8(lua_State *L) {
   return ret;
 }
 
-static int luv_wtf8_length_as_utf16(lua_State *L) {
+static int luv_wtf8_length_as_utf16(lua_State* L) {
   /* checkstring is guaranteed to return a NUL terminated string */
   const char* wtf8 = luaL_checkstring(L, 1);
   ssize_t ssz = uv_wtf8_length_as_utf16(wtf8);
@@ -840,16 +842,16 @@ static int luv_wtf8_length_as_utf16(lua_State *L) {
   return 1;
 }
 
-static int luv_wtf8_to_utf16(lua_State *L) {
+static int luv_wtf8_to_utf16(lua_State* L) {
   size_t sz;
-  uint16_t *utf16;
   const char* wtf8 = luaL_checklstring(L, 1, &sz);
   ssize_t ssz = uv_wtf8_length_as_utf16(wtf8);
-  utf16 = malloc(ssz * 2);
-  if (utf16 == NULL) return luaL_error(L, "failed to allocate %zu bytes", ssz * 2);
+  uint16_t* utf16 = malloc(ssz * 2);
+  if (utf16 == NULL)
+    return luaL_error(L, "failed to allocate %zu bytes", ssz * 2);
   uv_wtf8_to_utf16(wtf8, utf16, ssz);
   /* The returned string includes a NUL terminator, but we use Lua style string */
-  lua_pushlstring(L, (const char*)utf16, (ssz-1) * 2);
+  lua_pushlstring(L, (const char*)utf16, (ssz - 1) * 2);
   free(utf16);
   return 1;
 }

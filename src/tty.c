@@ -23,14 +23,12 @@ static uv_tty_t* luv_check_tty(lua_State* L, int index) {
 }
 
 static int luv_new_tty(lua_State* L) {
-  int readable, ret;
-  uv_tty_t* handle;
   luv_ctx_t* ctx = luv_context(L);
   uv_file fd = luaL_checkinteger(L, 1);
   luaL_checktype(L, 2, LUA_TBOOLEAN);
-  readable = lua_toboolean(L, 2);
-  handle = (uv_tty_t*)luv_newuserdata(L, uv_handle_size(UV_TTY));
-  ret = uv_tty_init(ctx->loop, handle, fd, readable);
+  int readable = lua_toboolean(L, 2);
+  uv_tty_t* handle = (uv_tty_t*)luv_newuserdata(L, uv_handle_size(UV_TTY));
+  int ret = uv_tty_init(ctx->loop, handle, fd, readable);
   if (ret < 0) {
     lua_pop(L, 1);
     return luv_error(L, ret);
@@ -39,11 +37,11 @@ static int luv_new_tty(lua_State* L) {
   return 1;
 }
 
-static int luv_check_tty_mode(lua_State *L, int i) {
+static int luv_check_tty_mode(lua_State* L, int i) {
 #if LUV_UV_VERSION_GEQ(1, 51, 0)
-  const char* modes[] = { "normal", "raw", "io", "raw_vt", NULL};
+  const char* modes[] = {"normal", "raw", "io", "raw_vt", NULL};
 #else
-  const char* modes[] = { "normal", "raw", "io", NULL};
+  const char* modes[] = {"normal", "raw", "io", NULL};
 #endif
   int mode;
 
@@ -53,11 +51,9 @@ static int luv_check_tty_mode(lua_State *L, int i) {
     mode = luaL_checkoption(L, i, NULL, modes);
 
 #if LUV_UV_VERSION_GEQ(1, 51, 0)
-  luaL_argcheck(L, mode >= UV_TTY_MODE_NORMAL && mode <= UV_TTY_MODE_RAW_VT,
-      i, "Unknown tty mode value");
+  luaL_argcheck(L, mode >= UV_TTY_MODE_NORMAL && mode <= UV_TTY_MODE_RAW_VT, i, "Unknown tty mode value");
 #elif LUV_UV_VERSION_GEQ(1, 2, 0)
-  luaL_argcheck(L, mode >= UV_TTY_MODE_NORMAL && mode <= UV_TTY_MODE_IO,
-      i, "Unknown tty mode value");
+  luaL_argcheck(L, mode >= UV_TTY_MODE_NORMAL && mode <= UV_TTY_MODE_IO, i, "Unknown tty mode value");
 #endif
   return mode;
 }
@@ -78,42 +74,38 @@ static int luv_tty_get_winsize(lua_State* L) {
   uv_tty_t* handle = luv_check_tty(L, 1);
   int width, height;
   int ret = uv_tty_get_winsize(handle, &width, &height);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushinteger(L, width);
   lua_pushinteger(L, height);
   return 2;
 }
 
 #if LUV_UV_VERSION_GEQ(1, 33, 0)
-int luv_tty_set_vterm_state(lua_State* L)
-{
+int luv_tty_set_vterm_state(lua_State* L) {
   uv_tty_vtermstate_t state[] = {UV_TTY_SUPPORTED, UV_TTY_UNSUPPORTED};
   const char* option[] = {"supported", "unsupported", NULL};
-  int idx = luaL_checkoption (L, 1, NULL, option);
+  int idx = luaL_checkoption(L, 1, NULL, option);
   uv_tty_set_vterm_state(state[idx]);
   return 0;
 }
 
-int luv_tty_get_vterm_state(lua_State* L)
-{
+int luv_tty_get_vterm_state(lua_State* L) {
   uv_tty_vtermstate_t state;
   int ret = uv_tty_get_vterm_state(&state);
-  if (ret < 0) return luv_error(L, ret);
-  switch (state)
-  {
+  if (ret < 0)
+    return luv_error(L, ret);
+  switch (state) {
     case UV_TTY_SUPPORTED:
       lua_pushliteral(L, "supported");
-      ret = 1;
       break;
     case UV_TTY_UNSUPPORTED:
       lua_pushliteral(L, "unsupported");
-      ret = 1;
       break;
     default:
-      ret = luaL_error(L, "unexpected uv_tty_vtermstate: %d", state);
+      luaL_error(L, "unexpected uv_tty_vtermstate: %d", state);
   }
-  return ret;
+  return 1;
 }
 
 #endif
-

@@ -62,19 +62,22 @@ static void luv_fs_event_cb(uv_fs_event_t* handle, const char* filename, int eve
 static int luv_fs_event_start(lua_State* L) {
   uv_fs_event_t* handle = luv_check_fs_event(L, 1);
   const char* path = luaL_checkstring(L, 2);
-  int flags = 0, ret;
+  int flags = 0;
   luaL_checktype(L, 3, LUA_TTABLE);
   lua_getfield(L, 3, "watch_entry");
-  if (lua_toboolean(L, -1)) flags |= UV_FS_EVENT_WATCH_ENTRY;
+  if (lua_toboolean(L, -1))
+    flags |= UV_FS_EVENT_WATCH_ENTRY;
   lua_pop(L, 1);
   lua_getfield(L, 3, "stat");
-  if (lua_toboolean(L, -1)) flags |= UV_FS_EVENT_STAT;
+  if (lua_toboolean(L, -1))
+    flags |= UV_FS_EVENT_STAT;
   lua_pop(L, 1);
   lua_getfield(L, 3, "recursive");
-  if (lua_toboolean(L, -1)) flags |= UV_FS_EVENT_RECURSIVE;
+  if (lua_toboolean(L, -1))
+    flags |= UV_FS_EVENT_RECURSIVE;
   lua_pop(L, 1);
   luv_check_callback(L, (luv_handle_t*)handle->data, LUV_FS_EVENT, 4);
-  ret = uv_fs_event_start(handle, luv_fs_event_cb, path, flags);
+  int ret = uv_fs_event_start(handle, luv_fs_event_cb, path, flags);
   return luv_result(L, ret);
 }
 
@@ -86,10 +89,11 @@ static int luv_fs_event_stop(lua_State* L) {
 
 static int luv_fs_event_getpath(lua_State* L) {
   uv_fs_event_t* handle = luv_check_fs_event(L, 1);
-  size_t len = 2*PATH_MAX;
-  char buf[2*PATH_MAX];
+  size_t len = 2 * PATH_MAX;
+  char buf[2 * PATH_MAX];
   int ret = uv_fs_event_getpath(handle, buf, &len);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushlstring(L, buf, len);
   return 1;
 }

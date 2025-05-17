@@ -20,11 +20,11 @@
 #include "luv.h"
 
 typedef struct {
-  int req_ref; /* ref for uv_req_t's userdata */
+  int req_ref;      /* ref for uv_req_t's userdata */
   int callback_ref; /* ref for callback */
-  int data_ref; /* ref for write data */
-  luv_ctx_t* ctx; /* context for callback */
-  void* data; /* extra data */
+  int data_ref;     /* ref for write data */
+  luv_ctx_t* ctx;   /* context for callback */
+  void* data;       /* extra data */
 } luv_req_t;
 
 // This is an arbitrary value that we can assume will never be returned by luaL_ref

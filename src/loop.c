@@ -18,16 +18,15 @@
 
 static int luv_loop_close(lua_State* L) {
   int ret = uv_loop_close(luv_loop(L));
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   luv_set_loop(L, NULL);
   lua_pushinteger(L, ret);
   return 1;
 }
 
 // These are the same order as uv_run_mode which also starts at 0
-static const char *const luv_runmodes[] = {
-  "default", "once", "nowait", NULL
-};
+static const char* const luv_runmodes[] = {"default", "once", "nowait", NULL};
 
 static int luv_run(lua_State* L) {
   int mode = luaL_checkoption(L, 1, "default", luv_runmodes);
@@ -40,7 +39,8 @@ static int luv_run(lua_State* L) {
   ctx->mode = mode;
   int ret = uv_run(ctx->loop, (uv_run_mode)mode);
   ctx->mode = -1;
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushboolean(L, ret);
   return 1;
 }
@@ -57,7 +57,8 @@ static int luv_loop_mode(lua_State* L) {
 
 static int luv_loop_alive(lua_State* L) {
   int ret = uv_loop_alive(luv_loop(L));
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   lua_pushboolean(L, ret);
   return 1;
 }
@@ -111,8 +112,8 @@ static void luv_walk_cb(uv_handle_t* handle, void* arg) {
   // Most invalid values are large and refs are small, 0x1000000 is arbitrary.
   assert(data && data->ref < 0x1000000);
 
-  lua_pushvalue(L, 1);           // Copy the function
-  luv_find_handle(L, data);      // Get the userdata
+  lua_pushvalue(L, 1);              // Copy the function
+  luv_find_handle(L, data);         // Get the userdata
   data->ctx->cb_pcall(L, 1, 0, 0);  // Call the function
 }
 
@@ -124,7 +125,7 @@ static int luv_walk(lua_State* L) {
 }
 
 #if LUV_UV_VERSION_GEQ(1, 0, 2)
-static const char *const luv_loop_configure_options[] = {
+static const char* const luv_loop_configure_options[] = {
   "block_signal",
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
   "metrics_idle_time",
@@ -137,11 +138,16 @@ static int luv_loop_configure(lua_State* L) {
   uv_loop_option option = 0;
   int ret = 0;
   switch (luaL_checkoption(L, 1, NULL, luv_loop_configure_options)) {
-  case 0: option = UV_LOOP_BLOCK_SIGNAL; break;
+    case 0:
+      option = UV_LOOP_BLOCK_SIGNAL;
+      break;
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
-  case 1: option = UV_METRICS_IDLE_TIME; break;
+    case 1:
+      option = UV_METRICS_IDLE_TIME;
+      break;
 #endif
-  default: break; /* unreachable */
+    default:
+      break; /* unreachable */
   }
   if (option == UV_LOOP_BLOCK_SIGNAL) {
     // lua_isstring checks for string or number

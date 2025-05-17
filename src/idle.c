@@ -42,9 +42,8 @@ static void luv_idle_cb(uv_idle_t* handle) {
 
 static int luv_idle_start(lua_State* L) {
   uv_idle_t* handle = luv_check_idle(L, 1);
-  int ret;
-  luv_check_callback(L, (luv_handle_t *)handle->data, LUV_IDLE, 2);
-  ret = uv_idle_start(handle, luv_idle_cb);
+  luv_check_callback(L, (luv_handle_t*)handle->data, LUV_IDLE, 2);
+  int ret = uv_idle_start(handle, luv_idle_cb);
   return luv_result(L, ret);
 }
 
@@ -53,4 +52,3 @@ static int luv_idle_stop(lua_State* L) {
   int ret = uv_idle_stop(handle);
   return luv_result(L, ret);
 }
-

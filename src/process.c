@@ -14,8 +14,9 @@
  *  limitations under the License.
  *
  */
-#include "private.h"
 #include <math.h>
+
+#include "private.h"
 
 static int luv_disable_stdio_inheritance(lua_State* L) {
   (void)L;
@@ -68,7 +69,8 @@ static int sparse_rawlen(lua_State* L, int tbl) {
     if (lua_type(L, -2) == LUA_TNUMBER) {
       int idx = lua_tonumber(L, -2);
       if (floor(idx) == idx && idx >= 1) {
-        if (idx > len) len = idx;
+        if (idx > len)
+          len = idx;
         lua_pop(L, 1);
         continue;
       }
@@ -80,11 +82,9 @@ static int sparse_rawlen(lua_State* L, int tbl) {
 }
 
 static int luv_spawn(lua_State* L) {
-  uv_process_t* handle;
   uv_process_options_t options;
   int* args_refs = NULL;
-  size_t i, len = 0;
-  int ret;
+  size_t len = 0;
   luv_ctx_t* ctx = luv_context(L);
 
   memset(&options, 0, sizeof(options));
@@ -100,12 +100,10 @@ static int luv_spawn(lua_State* L) {
   // +1 for inserted command at front
   if (lua_type(L, -1) == LUA_TTABLE) {
     len = 1 + lua_rawlen(L, -1);
-  }
-  else if (lua_type(L, -1) != LUA_TNIL) {
+  } else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
     return luaL_argerror(L, 3, "args option must be table");
-  }
-  else {
+  } else {
     len = 1;
   }
   // +1 for null terminator at end
@@ -115,11 +113,11 @@ static int luv_spawn(lua_State* L) {
   // collected between now and when they are used in uv_spawn.
   // However, we don't need to ref args[0] since we don't pop that
   // from the stack. Note: args_refs is a LUA_NOREF-terminated array
-  // when it is non-NULL 
+  // when it is non-NULL
   if (len > 1) {
     args_refs = (int*)malloc(len * sizeof(int));
     if (args_refs)
-      args_refs[len-1] = LUA_NOREF;
+      args_refs[len - 1] = LUA_NOREF;
   }
 
   if (!options.args || (len > 1 && !args_refs)) {
@@ -127,13 +125,13 @@ static int luv_spawn(lua_State* L) {
     return luaL_error(L, "Problem allocating args");
   }
   options.args[0] = (char*)options.file;
-  for (i = 1; i < len; ++i) {
+  for (size_t i = 1; i < len; ++i) {
     lua_rawgeti(L, -1, i);
     options.args[i] = (char*)lua_tostring(L, -1);
     args_refs[i - 1] = luaL_ref(L, LUA_REGISTRYINDEX);
   }
   options.args[len] = NULL;
-  lua_pop(L, 1); // pop the args field (either table or nil)
+  lua_pop(L, 1);  // pop the args field (either table or nil)
 
   // get the stdio list
   lua_getfield(L, 2, "stdio");
@@ -144,7 +142,7 @@ static int luv_spawn(lua_State* L) {
       luv_clean_options(L, &options, args_refs);
       return luaL_error(L, "Problem allocating stdio");
     }
-    for (i = 0; i < len; ++i) {
+    for (size_t i = 0; i < len; ++i) {
       lua_rawgeti(L, -1, i + 1);
       // integers are assumed to be file descriptors
       if (lua_type(L, -1) == LUA_TNUMBER) {
@@ -165,23 +163,19 @@ static int luv_spawn(lua_State* L) {
           if (i != 0)
             flags |= UV_WRITABLE_PIPE;
           options.stdio[i].flags = (uv_stdio_flags)flags;
-        }
-        else {
+        } else {
           options.stdio[i].flags = UV_INHERIT_STREAM;
         }
         options.stdio[i].data.stream = stream;
-      }
-      else if (lua_type(L, -1) == LUA_TNIL) {
+      } else if (lua_type(L, -1) == LUA_TNIL) {
         options.stdio[i].flags = UV_IGNORE;
-      }
-      else {
+      } else {
         luv_clean_options(L, &options, args_refs);
         return luaL_argerror(L, 2, "stdio table entries must be nil, uv_stream_t, or integer");
       }
       lua_pop(L, 1);
     }
-  }
-  else if (lua_type(L, -1) != LUA_TNIL) {
+  } else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
     return luaL_argerror(L, 2, "stdio option must be table");
   }
@@ -196,14 +190,13 @@ static int luv_spawn(lua_State* L) {
       luv_clean_options(L, &options, args_refs);
       return luaL_error(L, "Problem allocating env");
     }
-    for (i = 0; i < len; ++i) {
+    for (size_t i = 0; i < len; ++i) {
       lua_rawgeti(L, -1, i + 1);
       options.env[i] = (char*)lua_tostring(L, -1);
       lua_pop(L, 1);
     }
     options.env[len] = NULL;
-  }
-  else if (lua_type(L, -1) != LUA_TNIL) {
+  } else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
     return luaL_argerror(L, 2, "env option must be table");
   }
@@ -213,8 +206,7 @@ static int luv_spawn(lua_State* L) {
   lua_getfield(L, 2, "cwd");
   if (lua_type(L, -1) == LUA_TSTRING) {
     options.cwd = (char*)lua_tostring(L, -1);
-  }
-  else if (lua_type(L, -1) != LUA_TNIL) {
+  } else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
     return luaL_argerror(L, 2, "cwd option must be string");
   }
@@ -225,8 +217,7 @@ static int luv_spawn(lua_State* L) {
   if (lua_type(L, -1) == LUA_TNUMBER) {
     options.uid = lua_tointeger(L, -1);
     options.flags |= UV_PROCESS_SETUID;
-  }
-  else if (lua_type(L, -1) != LUA_TNIL) {
+  } else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
     return luaL_argerror(L, 2, "uid option must be number");
   }
@@ -237,8 +228,7 @@ static int luv_spawn(lua_State* L) {
   if (lua_type(L, -1) == LUA_TNUMBER) {
     options.gid = lua_tointeger(L, -1);
     options.flags |= UV_PROCESS_SETGID;
-  }
-  else if (lua_type(L, -1) != LUA_TNIL) {
+  } else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
     return luaL_argerror(L, 2, "gid option must be number");
   }
@@ -277,7 +267,7 @@ static int luv_spawn(lua_State* L) {
   // the uv_process_t userdata doesn't get treated as the 3rd argument
   lua_settop(L, 3);
 
-  handle = (uv_process_t*)luv_newuserdata(L, uv_handle_size(UV_PROCESS));
+  uv_process_t* handle = (uv_process_t*)luv_newuserdata(L, uv_handle_size(UV_PROCESS));
   handle->type = UV_PROCESS;
   handle->data = luv_setup_handle(L, ctx);
 
@@ -285,7 +275,7 @@ static int luv_spawn(lua_State* L) {
     luv_check_callback(L, (luv_handle_t*)handle->data, LUV_EXIT, 3);
   }
 
-  ret = uv_spawn(ctx->loop, handle, &options);
+  int ret = uv_spawn(ctx->loop, handle, &options);
 
   luv_clean_options(L, &options, args_refs);
   if (ret < 0) {

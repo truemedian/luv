@@ -23,28 +23,24 @@ static uv_tcp_t* luv_check_tcp(lua_State* L, int index) {
 }
 
 static int luv_new_tcp(lua_State* L) {
-  uv_tcp_t* handle;
-  int ret;
   luv_ctx_t* ctx = luv_context(L);
   lua_settop(L, 1);
-  handle = (uv_tcp_t*)luv_newuserdata(L, uv_handle_size(UV_TCP));
+  uv_tcp_t* handle = (uv_tcp_t*)luv_newuserdata(L, uv_handle_size(UV_TCP));
+  int ret;
 #if LUV_UV_VERSION_GEQ(1, 7, 0)
   if (lua_isnoneornil(L, 1)) {
     ret = uv_tcp_init(ctx->loop, handle);
-  }
-  else {
+  } else {
     unsigned int flags = AF_UNSPEC;
     if (lua_isnumber(L, 1)) {
       flags = lua_tointeger(L, 1);
-    }
-    else if (lua_isstring(L, 1)) {
+    } else if (lua_isstring(L, 1)) {
       const char* family = lua_tostring(L, 1);
       flags = luv_af_string_to_num(family);
       if (!flags) {
         luaL_argerror(L, 1, lua_pushfstring(L, "invalid or unknown address family: '%s'", family));
       }
-    }
-    else {
+    } else {
       luaL_argerror(L, 1, "expected string or integer");
     }
     ret = uv_tcp_init_ex(ctx->loop, handle, flags);
@@ -69,32 +65,29 @@ static int luv_tcp_open(lua_State* L) {
 
 static int luv_tcp_nodelay(lua_State* L) {
   uv_tcp_t* handle = luv_check_tcp(L, 1);
-  int ret, enable;
   luaL_checktype(L, 2, LUA_TBOOLEAN);
-  enable = lua_toboolean(L, 2);
-  ret = uv_tcp_nodelay(handle, enable);
+  int enable = lua_toboolean(L, 2);
+  int ret = uv_tcp_nodelay(handle, enable);
   return luv_result(L, ret);
 }
 
 static int luv_tcp_keepalive(lua_State* L) {
   uv_tcp_t* handle = luv_check_tcp(L, 1);
-  int ret, enable;
-  unsigned int delay = 0;
   luaL_checktype(L, 2, LUA_TBOOLEAN);
-  enable = lua_toboolean(L, 2);
+  int enable = lua_toboolean(L, 2);
+  unsigned int delay = 0;
   if (enable) {
     delay = luaL_checkinteger(L, 3);
   }
-  ret = uv_tcp_keepalive(handle, enable, delay);
+  int ret = uv_tcp_keepalive(handle, enable, delay);
   return luv_result(L, ret);
 }
 
 static int luv_tcp_simultaneous_accepts(lua_State* L) {
   uv_tcp_t* handle = luv_check_tcp(L, 1);
-  int ret, enable;
   luaL_checktype(L, 2, LUA_TBOOLEAN);
-  enable = lua_toboolean(L, 2);
-  ret = uv_tcp_simultaneous_accepts(handle, enable);
+  int enable = lua_toboolean(L, 2);
+  int ret = uv_tcp_simultaneous_accepts(handle, enable);
   return luv_result(L, ret);
 }
 
@@ -104,17 +97,16 @@ static int luv_tcp_bind(lua_State* L) {
   int port = luaL_checkinteger(L, 3);
   unsigned int flags = 0;
   struct sockaddr_storage addr;
-  int ret;
-  if (uv_ip4_addr(host, port, (struct sockaddr_in*)&addr) &&
-      uv_ip6_addr(host, port, (struct sockaddr_in6*)&addr)) {
+  if (uv_ip4_addr(host, port, (struct sockaddr_in*)&addr) && uv_ip6_addr(host, port, (struct sockaddr_in6*)&addr)) {
     return luaL_error(L, "Invalid IP address or port [%s:%d]", host, port);
   }
   if (lua_type(L, 4) == LUA_TTABLE) {
     lua_getfield(L, 4, "ipv6only");
-    if (lua_toboolean(L, -1)) flags |= UV_TCP_IPV6ONLY;
+    if (lua_toboolean(L, -1))
+      flags |= UV_TCP_IPV6ONLY;
     lua_pop(L, 1);
   }
-  ret = uv_tcp_bind(handle, (struct sockaddr*)&addr, flags);
+  int ret = uv_tcp_bind(handle, (struct sockaddr*)&addr, flags);
   return luv_result(L, ret);
 }
 
@@ -146,7 +138,8 @@ static int luv_tcp_getsockname(lua_State* L) {
   struct sockaddr_storage address;
   int addrlen = sizeof(address);
   int ret = uv_tcp_getsockname(handle, (struct sockaddr*)&address, &addrlen);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   parse_sockaddr(L, &address);
   return 1;
 }
@@ -156,7 +149,8 @@ static int luv_tcp_getpeername(lua_State* L) {
   struct sockaddr_storage address;
   int addrlen = sizeof(address);
   int ret = uv_tcp_getpeername(handle, (struct sockaddr*)&address, &addrlen);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
   parse_sockaddr(L, &address);
   return 1;
 }
@@ -182,18 +176,15 @@ static int luv_tcp_connect(lua_State* L) {
   const char* host = luaL_checkstring(L, 2);
   int port = luaL_checkinteger(L, 3);
   struct sockaddr_storage addr;
-  uv_connect_t* req;
-  int ret, ref;
   luv_handle_t* lhandle = handle->data;
-  if (uv_ip4_addr(host, port, (struct sockaddr_in*)&addr) &&
-      uv_ip6_addr(host, port, (struct sockaddr_in6*)&addr)) {
+  if (uv_ip4_addr(host, port, (struct sockaddr_in*)&addr) && uv_ip6_addr(host, port, (struct sockaddr_in6*)&addr)) {
     return luaL_error(L, "Invalid IP address or port [%s:%d]", host, port);
   }
-  ref = luv_check_continuation(L, 4);
+  int ref = luv_check_continuation(L, 4);
 
-  req = (uv_connect_t*)lua_newuserdata(L, uv_req_size(UV_CONNECT));
+  uv_connect_t* req = (uv_connect_t*)lua_newuserdata(L, uv_req_size(UV_CONNECT));
   req->data = luv_setup_req(L, lhandle->ctx, ref);
-  ret = uv_tcp_connect(req, handle, (struct sockaddr*)&addr, luv_connect_cb);
+  int ret = uv_tcp_connect(req, handle, (struct sockaddr*)&addr, luv_connect_cb);
   if (ret < 0) {
     luv_cleanup_req(L, (luv_req_t*)req->data);
     lua_pop(L, 1);
@@ -204,78 +195,76 @@ static int luv_tcp_connect(lua_State* L) {
 
 #if LUV_UV_VERSION_GEQ(1, 32, 0)
 static void luv_close_reset_cb(uv_handle_t* handle) {
-  lua_State* L;
   luv_handle_t* data = (luv_handle_t*)handle->data;
-  if (!data) return;
-  L = data->ctx->L;
+  if (!data)
+    return;
+  lua_State* L = data->ctx->L;
   luv_call_callback(L, data, LUV_RESET, 0);
   luv_unref_handle(L, data);
 }
 
 static int luv_tcp_close_reset(lua_State* L) {
-  int ret;
   uv_tcp_t* handle = luv_check_tcp(L, 1);
   if (!lua_isnoneornil(L, 2)) {
     luv_check_callback(L, (luv_handle_t*)handle->data, LUV_RESET, 2);
   }
-  ret = uv_tcp_close_reset(handle, luv_close_reset_cb);
+  int ret = uv_tcp_close_reset(handle, luv_close_reset_cb);
   return luv_result(L, ret);
 }
 #endif
 
 #if LUV_UV_VERSION_GEQ(1, 41, 0)
 static int luv_socketpair(lua_State* L) {
-  int ret;
   int socktype = SOCK_STREAM;
-  int protocol = 0; // 0 = let the protocol be chosen automatically
-  int flags0 = 0, flags1 = 0;
-  uv_os_sock_t socks[2];
+  int protocol = 0;  // 0 = let the protocol be chosen automatically
+  int flags0 = 0;
+  int flags1 = 0;
 
   // socktype
   if (lua_isnumber(L, 1)) {
     socktype = lua_tointeger(L, 1);
-  }
-  else if (lua_isstring(L, 1)) {
+  } else if (lua_isstring(L, 1)) {
     socktype = luv_sock_string_to_num(lua_tostring(L, 1));
     if (socktype == 0) {
       return luaL_argerror(L, 1, lua_pushfstring(L, "invalid socket type: %s", lua_tostring(L, 1)));
     }
-  }
-  else if (!lua_isnoneornil(L, 1)) {
-    return luv_arg_type_error(L, 1, "socket type must be string or integer if set, got %s");
+  } else if (!lua_isnoneornil(L, 1)) {
+    return luv_typeerror(L, 1, "string or integer or nil");
   }
   // protocol
   if (lua_isnumber(L, 2)) {
     protocol = lua_tointeger(L, 2);
-  }
-  else if (lua_isstring(L, 2)) {
+  } else if (lua_isstring(L, 2)) {
     protocol = luv_proto_string_to_num(lua_tostring(L, 2));
     if (protocol < 0) {
       return luaL_argerror(L, 2, lua_pushfstring(L, "invalid protocol: %s", lua_tostring(L, 2)));
     }
-  }
-  else if (!lua_isnoneornil(L, 2)) {
-    return luv_arg_type_error(L, 2, "protocol must be string or integer if set, got %s");
+  } else if (!lua_isnoneornil(L, 2)) {
+    return luv_typeerror(L, 2, "string or integer or nil");
   }
   // flags0
   if (lua_type(L, 3) == LUA_TTABLE) {
     lua_getfield(L, 3, "nonblock");
-    if (lua_toboolean(L, -1)) flags0 |= UV_NONBLOCK_PIPE;
+    if (lua_toboolean(L, -1))
+      flags0 |= UV_NONBLOCK_PIPE;
     lua_pop(L, 1);
   } else if (!lua_isnoneornil(L, 3)) {
-    luv_arg_type_error(L, 3, "table or nil expected, got %s");
+    luv_typeerror(L, 3, "table or nil");
   }
   // flags1
   if (lua_type(L, 4) == LUA_TTABLE) {
     lua_getfield(L, 4, "nonblock");
-    if (lua_toboolean(L, -1)) flags1 |= UV_NONBLOCK_PIPE;
+    if (lua_toboolean(L, -1))
+      flags1 |= UV_NONBLOCK_PIPE;
     lua_pop(L, 1);
   } else if (!lua_isnoneornil(L, 4)) {
-    luv_arg_type_error(L, 4, "table or nil expected, got %s");
+    luv_typeerror(L, 4, "table or nil");
   }
 
-  ret = uv_socketpair(socktype, protocol, socks, flags0, flags1);
-  if (ret < 0) return luv_error(L, ret);
+  uv_os_sock_t socks[2];
+  int ret = uv_socketpair(socktype, protocol, socks, flags0, flags1);
+  if (ret < 0)
+    return luv_error(L, ret);
 
   lua_createtable(L, 2, 0);
   lua_pushinteger(L, socks[0]);

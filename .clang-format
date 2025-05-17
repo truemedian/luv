@@ -1,2 +1,19 @@
 Language: Cpp
-DisableFormat: true
+BasedOnStyle: Google
+
+ColumnLimit: 120
+IndentWidth: 2
+ContinuationIndentWidth: 2
+
+AlignAfterOpenBracket: BlockIndent
+PenaltyReturnTypeOnItsOwnLine: 10000
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortLoopsOnASingleLine: false

@@ -16,6 +16,7 @@
  */
 
 #include "luv.h"
+#include "private.h"
 
 static int luv_constants(lua_State* L) {
   lua_newtable(L);
@@ -385,36 +386,47 @@ static int luv_constants(lua_State* L) {
 }
 
 static int luv_af_string_to_num(const char* string) {
-  if (!string) return AF_UNSPEC;
+  if (!string)
+    return AF_UNSPEC;
 #ifdef AF_UNIX
-  if (strcmp(string, "unix") == 0) return AF_UNIX;
+  if (strcmp(string, "unix") == 0)
+    return AF_UNIX;
 #endif
 #ifdef AF_INET
-  if (strcmp(string, "inet") == 0) return AF_INET;
+  if (strcmp(string, "inet") == 0)
+    return AF_INET;
 #endif
 #ifdef AF_INET6
-  if (strcmp(string, "inet6") == 0) return AF_INET6;
+  if (strcmp(string, "inet6") == 0)
+    return AF_INET6;
 #endif
 #ifdef AF_IPX
-  if (strcmp(string, "ipx") == 0) return AF_IPX;
+  if (strcmp(string, "ipx") == 0)
+    return AF_IPX;
 #endif
 #ifdef AF_NETLINK
-  if (strcmp(string, "netlink") == 0) return AF_NETLINK;
+  if (strcmp(string, "netlink") == 0)
+    return AF_NETLINK;
 #endif
 #ifdef AF_X25
-  if (strcmp(string, "x25") == 0) return AF_X25;
+  if (strcmp(string, "x25") == 0)
+    return AF_X25;
 #endif
 #ifdef AF_AX25
-  if (strcmp(string, "ax25") == 0) return AF_AX25;
+  if (strcmp(string, "ax25") == 0)
+    return AF_AX25;
 #endif
 #ifdef AF_ATMPVC
-  if (strcmp(string, "atmpvc") == 0) return AF_ATMPVC;
+  if (strcmp(string, "atmpvc") == 0)
+    return AF_ATMPVC;
 #endif
 #ifdef AF_APPLETALK
-  if (strcmp(string, "appletalk") == 0) return AF_APPLETALK;
+  if (strcmp(string, "appletalk") == 0)
+    return AF_APPLETALK;
 #endif
 #ifdef AF_PACKET
-  if (strcmp(string, "packet") == 0) return AF_PACKET;
+  if (strcmp(string, "packet") == 0)
+    return AF_PACKET;
 #endif
   return 0;
 }
@@ -422,56 +434,71 @@ static int luv_af_string_to_num(const char* string) {
 static const char* luv_af_num_to_string(const int num) {
   switch (num) {
 #ifdef AF_UNIX
-  case AF_UNIX: return "unix";
+    case AF_UNIX:
+      return "unix";
 #endif
 #ifdef AF_INET
-  case AF_INET: return "inet";
+    case AF_INET:
+      return "inet";
 #endif
 #ifdef AF_INET6
-  case AF_INET6: return "inet6";
+    case AF_INET6:
+      return "inet6";
 #endif
 #ifdef AF_IPX
-  case AF_IPX: return "ipx";
+    case AF_IPX:
+      return "ipx";
 #endif
 #ifdef AF_NETLINK
-  case AF_NETLINK: return "netlink";
+    case AF_NETLINK:
+      return "netlink";
 #endif
 #ifdef AF_X25
-  case AF_X25: return "x25";
+    case AF_X25:
+      return "x25";
 #endif
 #ifdef AF_AX25
-  case AF_AX25: return "ax25";
+    case AF_AX25:
+      return "ax25";
 #endif
 #ifdef AF_ATMPVC
-  case AF_ATMPVC: return "atmpvc";
+    case AF_ATMPVC:
+      return "atmpvc";
 #endif
 #ifdef AF_APPLETALK
-  case AF_APPLETALK: return "appletalk";
+    case AF_APPLETALK:
+      return "appletalk";
 #endif
 #ifdef AF_PACKET
-  case AF_PACKET: return "packet";
+    case AF_PACKET:
+      return "packet";
 #endif
   }
   return NULL;
 }
 
-
 static int luv_sock_string_to_num(const char* string) {
-  if (!string) return 0;
+  if (!string)
+    return 0;
 #ifdef SOCK_STREAM
-  if (strcmp(string, "stream") == 0) return SOCK_STREAM;
+  if (strcmp(string, "stream") == 0)
+    return SOCK_STREAM;
 #endif
 #ifdef SOCK_DGRAM
-  if (strcmp(string, "dgram") == 0) return SOCK_DGRAM;
+  if (strcmp(string, "dgram") == 0)
+    return SOCK_DGRAM;
 #endif
 #ifdef SOCK_SEQPACKET
-  if (strcmp(string, "seqpacket") == 0) return SOCK_SEQPACKET;
+  if (strcmp(string, "seqpacket") == 0)
+    return SOCK_SEQPACKET;
 #endif
 #ifdef SOCK_RAW
-  if (strcmp(string, "raw") == 0) return SOCK_RAW;
+  if (strcmp(string, "raw") == 0)
+    return SOCK_RAW;
 #endif
 #ifdef SOCK_RDM
-  if (strcmp(string, "rdm") == 0) return SOCK_RDM;
+  if (strcmp(string, "rdm") == 0)
+    return SOCK_RDM;
 #endif
   return 0;
 }
@@ -479,130 +506,171 @@ static int luv_sock_string_to_num(const char* string) {
 static const char* luv_sock_num_to_string(const int num) {
   switch (num) {
 #ifdef SOCK_STREAM
-  case SOCK_STREAM: return "stream";
+    case SOCK_STREAM:
+      return "stream";
 #endif
 #ifdef SOCK_DGRAM
-  case SOCK_DGRAM: return "dgram";
+    case SOCK_DGRAM:
+      return "dgram";
 #endif
 #ifdef SOCK_SEQPACKET
-  case SOCK_SEQPACKET: return "seqpacket";
+    case SOCK_SEQPACKET:
+      return "seqpacket";
 #endif
 #ifdef SOCK_RAW
-  case SOCK_RAW: return "raw";
+    case SOCK_RAW:
+      return "raw";
 #endif
 #ifdef SOCK_RDM
-  case SOCK_RDM: return "rdm";
+    case SOCK_RDM:
+      return "rdm";
 #endif
   }
   return NULL;
 }
 
 static int luv_sig_string_to_num(const char* string) {
-  if (!string) return 0;
+  if (!string)
+    return 0;
 #ifdef SIGHUP
-  if (strcmp(string, "sighup") == 0) return SIGHUP;
+  if (strcmp(string, "sighup") == 0)
+    return SIGHUP;
 #endif
 #ifdef SIGINT
-  if (strcmp(string, "sigint") == 0) return SIGINT;
+  if (strcmp(string, "sigint") == 0)
+    return SIGINT;
 #endif
 #ifdef SIGQUIT
-  if (strcmp(string, "sigquit") == 0) return SIGQUIT;
+  if (strcmp(string, "sigquit") == 0)
+    return SIGQUIT;
 #endif
 #ifdef SIGILL
-  if (strcmp(string, "sigill") == 0) return SIGILL;
+  if (strcmp(string, "sigill") == 0)
+    return SIGILL;
 #endif
 #ifdef SIGTRAP
-  if (strcmp(string, "sigtrap") == 0) return SIGTRAP;
+  if (strcmp(string, "sigtrap") == 0)
+    return SIGTRAP;
 #endif
 #ifdef SIGABRT
-  if (strcmp(string, "sigabrt") == 0) return SIGABRT;
+  if (strcmp(string, "sigabrt") == 0)
+    return SIGABRT;
 #endif
 #ifdef SIGIOT
-  if (strcmp(string, "sigiot") == 0) return SIGIOT;
+  if (strcmp(string, "sigiot") == 0)
+    return SIGIOT;
 #endif
 #ifdef SIGBUS
-  if (strcmp(string, "sigbus") == 0) return SIGBUS;
+  if (strcmp(string, "sigbus") == 0)
+    return SIGBUS;
 #endif
 #ifdef SIGFPE
-  if (strcmp(string, "sigfpe") == 0) return SIGFPE;
+  if (strcmp(string, "sigfpe") == 0)
+    return SIGFPE;
 #endif
 #ifdef SIGKILL
-  if (strcmp(string, "sigkill") == 0) return SIGKILL;
+  if (strcmp(string, "sigkill") == 0)
+    return SIGKILL;
 #endif
 #ifdef SIGUSR1
-  if (strcmp(string, "sigusr1") == 0) return SIGUSR1;
+  if (strcmp(string, "sigusr1") == 0)
+    return SIGUSR1;
 #endif
 #ifdef SIGSEGV
-  if (strcmp(string, "sigsegv") == 0) return SIGSEGV;
+  if (strcmp(string, "sigsegv") == 0)
+    return SIGSEGV;
 #endif
 #ifdef SIGUSR2
-  if (strcmp(string, "sigusr2") == 0) return SIGUSR2;
+  if (strcmp(string, "sigusr2") == 0)
+    return SIGUSR2;
 #endif
 #ifdef SIGPIPE
-  if (strcmp(string, "sigpipe") == 0) return SIGPIPE;
+  if (strcmp(string, "sigpipe") == 0)
+    return SIGPIPE;
 #endif
 #ifdef SIGALRM
-  if (strcmp(string, "sigalrm") == 0) return SIGALRM;
+  if (strcmp(string, "sigalrm") == 0)
+    return SIGALRM;
 #endif
 #ifdef SIGTERM
-  if (strcmp(string, "sigterm") == 0) return SIGTERM;
+  if (strcmp(string, "sigterm") == 0)
+    return SIGTERM;
 #endif
 #ifdef SIGCHLD
-  if (strcmp(string, "sigchld") == 0) return SIGCHLD;
+  if (strcmp(string, "sigchld") == 0)
+    return SIGCHLD;
 #endif
 #ifdef SIGSTKFLT
-  if (strcmp(string, "sigstkflt") == 0) return SIGSTKFLT;
+  if (strcmp(string, "sigstkflt") == 0)
+    return SIGSTKFLT;
 #endif
 #ifdef SIGCONT
-  if (strcmp(string, "sigcont") == 0) return SIGCONT;
+  if (strcmp(string, "sigcont") == 0)
+    return SIGCONT;
 #endif
 #ifdef SIGSTOP
-  if (strcmp(string, "sigstop") == 0) return SIGSTOP;
+  if (strcmp(string, "sigstop") == 0)
+    return SIGSTOP;
 #endif
 #ifdef SIGTSTP
-  if (strcmp(string, "sigtstp") == 0) return SIGTSTP;
+  if (strcmp(string, "sigtstp") == 0)
+    return SIGTSTP;
 #endif
 #ifdef SIGBREAK
-  if (strcmp(string, "sigbreak") == 0) return SIGBREAK;
+  if (strcmp(string, "sigbreak") == 0)
+    return SIGBREAK;
 #endif
 #ifdef SIGTTIN
-  if (strcmp(string, "sigttin") == 0) return SIGTTIN;
+  if (strcmp(string, "sigttin") == 0)
+    return SIGTTIN;
 #endif
 #ifdef SIGTTOU
-  if (strcmp(string, "sigttou") == 0) return SIGTTOU;
+  if (strcmp(string, "sigttou") == 0)
+    return SIGTTOU;
 #endif
 #ifdef SIGURG
-  if (strcmp(string, "sigurg") == 0) return SIGURG;
+  if (strcmp(string, "sigurg") == 0)
+    return SIGURG;
 #endif
 #ifdef SIGXCPU
-  if (strcmp(string, "sigxcpu") == 0) return SIGXCPU;
+  if (strcmp(string, "sigxcpu") == 0)
+    return SIGXCPU;
 #endif
 #ifdef SIGXFSZ
-  if (strcmp(string, "sigxfsz") == 0) return SIGXFSZ;
+  if (strcmp(string, "sigxfsz") == 0)
+    return SIGXFSZ;
 #endif
 #ifdef SIGVTALRM
-  if (strcmp(string, "sigvtalrm") == 0) return SIGVTALRM;
+  if (strcmp(string, "sigvtalrm") == 0)
+    return SIGVTALRM;
 #endif
 #ifdef SIGPROF
-  if (strcmp(string, "sigprof") == 0) return SIGPROF;
+  if (strcmp(string, "sigprof") == 0)
+    return SIGPROF;
 #endif
 #ifdef SIGWINCH
-  if (strcmp(string, "sigwinch") == 0) return SIGWINCH;
+  if (strcmp(string, "sigwinch") == 0)
+    return SIGWINCH;
 #endif
 #ifdef SIGIO
-  if (strcmp(string, "sigio") == 0) return SIGIO;
+  if (strcmp(string, "sigio") == 0)
+    return SIGIO;
 #endif
 #ifdef SIGPOLL
-  if (strcmp(string, "sigpoll") == 0) return SIGPOLL;
+  if (strcmp(string, "sigpoll") == 0)
+    return SIGPOLL;
 #endif
 #ifdef SIGLOST
-  if (strcmp(string, "siglost") == 0) return SIGLOST;
+  if (strcmp(string, "siglost") == 0)
+    return SIGLOST;
 #endif
 #ifdef SIGPWR
-  if (strcmp(string, "sigpwr") == 0) return SIGPWR;
+  if (strcmp(string, "sigpwr") == 0)
+    return SIGPWR;
 #endif
 #ifdef SIGSYS
-  if (strcmp(string, "sigsys") == 0) return SIGSYS;
+  if (strcmp(string, "sigsys") == 0)
+    return SIGSYS;
 #endif
   return 0;
 }
@@ -610,115 +678,150 @@ static int luv_sig_string_to_num(const char* string) {
 static const char* luv_sig_num_to_string(const int num) {
   switch (num) {
 #ifdef SIGHUP
-  case SIGHUP: return "sighup";
+    case SIGHUP:
+      return "sighup";
 #endif
 #ifdef SIGINT
-  case SIGINT: return "sigint";
+    case SIGINT:
+      return "sigint";
 #endif
 #ifdef SIGQUIT
-  case SIGQUIT: return "sigquit";
+    case SIGQUIT:
+      return "sigquit";
 #endif
 #ifdef SIGILL
-  case SIGILL: return "sigill";
+    case SIGILL:
+      return "sigill";
 #endif
 #ifdef SIGTRAP
-  case SIGTRAP: return "sigtrap";
+    case SIGTRAP:
+      return "sigtrap";
 #endif
 #ifdef SIGABRT
-  case SIGABRT: return "sigabrt";
+    case SIGABRT:
+      return "sigabrt";
 #endif
 #ifdef SIGIOT
-# if SIGIOT != SIGABRT
-  case SIGIOT: return "sigiot";
-# endif
+#if SIGIOT != SIGABRT
+    case SIGIOT:
+      return "sigiot";
+#endif
 #endif
 #ifdef SIGBUS
-  case SIGBUS: return "sigbus";
+    case SIGBUS:
+      return "sigbus";
 #endif
 #ifdef SIGFPE
-  case SIGFPE: return "sigfpe";
+    case SIGFPE:
+      return "sigfpe";
 #endif
 #ifdef SIGKILL
-  case SIGKILL: return "sigkill";
+    case SIGKILL:
+      return "sigkill";
 #endif
 #ifdef SIGUSR1
-  case SIGUSR1: return "sigusr1";
+    case SIGUSR1:
+      return "sigusr1";
 #endif
 #ifdef SIGSEGV
-  case SIGSEGV: return "sigsegv";
+    case SIGSEGV:
+      return "sigsegv";
 #endif
 #ifdef SIGUSR2
-  case SIGUSR2: return "sigusr2";
+    case SIGUSR2:
+      return "sigusr2";
 #endif
 #ifdef SIGPIPE
-  case SIGPIPE: return "sigpipe";
+    case SIGPIPE:
+      return "sigpipe";
 #endif
 #ifdef SIGALRM
-  case SIGALRM: return "sigalrm";
+    case SIGALRM:
+      return "sigalrm";
 #endif
 #ifdef SIGTERM
-  case SIGTERM: return "sigterm";
+    case SIGTERM:
+      return "sigterm";
 #endif
 #ifdef SIGCHLD
-  case SIGCHLD: return "sigchld";
+    case SIGCHLD:
+      return "sigchld";
 #endif
 #ifdef SIGSTKFLT
-  case SIGSTKFLT: return "sigstkflt";
+    case SIGSTKFLT:
+      return "sigstkflt";
 #endif
 #ifdef SIGCONT
-  case SIGCONT: return "sigcont";
+    case SIGCONT:
+      return "sigcont";
 #endif
 #ifdef SIGSTOP
-  case SIGSTOP: return "sigstop";
+    case SIGSTOP:
+      return "sigstop";
 #endif
 #ifdef SIGTSTP
-  case SIGTSTP: return "sigtstp";
+    case SIGTSTP:
+      return "sigtstp";
 #endif
 #ifdef SIGBREAK
-  case SIGBREAK: return "sigbreak";
+    case SIGBREAK:
+      return "sigbreak";
 #endif
 #ifdef SIGTTIN
-  case SIGTTIN: return "sigttin";
+    case SIGTTIN:
+      return "sigttin";
 #endif
 #ifdef SIGTTOU
-  case SIGTTOU: return "sigttou";
+    case SIGTTOU:
+      return "sigttou";
 #endif
 #ifdef SIGURG
-  case SIGURG: return "sigurg";
+    case SIGURG:
+      return "sigurg";
 #endif
 #ifdef SIGXCPU
-  case SIGXCPU: return "sigxcpu";
+    case SIGXCPU:
+      return "sigxcpu";
 #endif
 #ifdef SIGXFSZ
-  case SIGXFSZ: return "sigxfsz";
+    case SIGXFSZ:
+      return "sigxfsz";
 #endif
 #ifdef SIGVTALRM
-  case SIGVTALRM: return "sigvtalrm";
+    case SIGVTALRM:
+      return "sigvtalrm";
 #endif
 #ifdef SIGPROF
-  case SIGPROF: return "sigprof";
+    case SIGPROF:
+      return "sigprof";
 #endif
 #ifdef SIGWINCH
-  case SIGWINCH: return "sigwinch";
+    case SIGWINCH:
+      return "sigwinch";
 #endif
 #ifdef SIGIO
-  case SIGIO: return "sigio";
+    case SIGIO:
+      return "sigio";
 #endif
 #ifdef SIGPOLL
-# if SIGPOLL != SIGIO
-  case SIGPOLL: return "sigpoll";
-# endif
+#if SIGPOLL != SIGIO
+    case SIGPOLL:
+      return "sigpoll";
+#endif
 #endif
 #ifdef SIGLOST
-  case SIGLOST: return "siglost";
+    case SIGLOST:
+      return "siglost";
 #endif
 #ifdef SIGPWR
-# if SIGPWR != SIGLOST
-  case SIGPWR: return "sigpwr";
-# endif
+#if SIGPWR != SIGLOST
+    case SIGPWR:
+      return "sigpwr";
+#endif
 #endif
 #ifdef SIGSYS
-  case SIGSYS: return "sigsys";
+    case SIGSYS:
+      return "sigsys";
 #endif
   }
   return NULL;
@@ -726,14 +829,17 @@ static const char* luv_sig_num_to_string(const int num) {
 
 static int luv_proto_string_to_num(const char* string) {
   struct protoent* proto;
-  if (!string) return -1;
+  if (!string)
+    return -1;
   proto = getprotobyname(string);
-  if (!proto) return -1;
+  if (!proto)
+    return -1;
   return proto->p_proto;
 }
 
 static const char* luv_proto_num_to_string(int num) {
   struct protoent* proto = getprotobynumber(num);
-  if (!proto) return NULL;
+  if (!proto)
+    return NULL;
   return proto->p_name;
 }

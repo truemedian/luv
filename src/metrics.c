@@ -27,10 +27,11 @@ static int luv_metrics_idle_time(lua_State* L) {
 #endif
 
 #if LUV_UV_VERSION_GEQ(1, 45, 0)
-static int luv_metrics_info(lua_State *L) {
+static int luv_metrics_info(lua_State* L) {
   uv_metrics_t metrics;
   int ret = uv_metrics_info(luv_loop(L), &metrics);
-  if (ret < 0) return luv_error(L, ret);
+  if (ret < 0)
+    return luv_error(L, ret);
 
   lua_newtable(L);
 

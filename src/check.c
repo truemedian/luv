@@ -42,9 +42,8 @@ static void luv_check_cb(uv_check_t* handle) {
 
 static int luv_check_start(lua_State* L) {
   uv_check_t* handle = luv_check_check(L, 1);
-  int ret;
-  luv_check_callback(L, (luv_handle_t *)handle->data, LUV_CHECK, 2);
-  ret = uv_check_start(handle, luv_check_cb);
+  luv_check_callback(L, (luv_handle_t*)handle->data, LUV_CHECK, 2);
+  int ret = uv_check_start(handle, luv_check_cb);
   return luv_result(L, ret);
 }
 
@@ -53,4 +52,3 @@ static int luv_check_stop(lua_State* L) {
   int ret = uv_check_stop(handle);
   return luv_result(L, ret);
 }
-
