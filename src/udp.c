@@ -42,14 +42,14 @@ static int luv_new_udp(lua_State* L) {
       flags = lua_tointeger(L, 1);
     } else if (lua_isstring(L, 1)) {
       const char* family = lua_tostring(L, 1);
-      flags = luv_af_string_to_num(family);
+      flags = luv_addrfamily_str2int(family);
     } else if (lua_istable(L, 1)) {
       lua_getfield(L, 1, "family");
       if (lua_isnumber(L, -1)) {
         // The lower 8 bits of the flags parameter are used as the socket domain
         flags = lua_tointeger(L, -1) & 0xFF;
       } else if (lua_isstring(L, -1)) {
-        flags = luv_af_string_to_num(lua_tostring(L, -1));
+        flags = luv_addrfamily_str2int(lua_tostring(L, -1));
       } else if (!lua_isnil(L, -1)) {
         luaL_argerror(L, 1, "family must be string or integer if set");
       }

@@ -70,16 +70,6 @@ static void luv_connect_cb(uv_connect_t* req, int status);
 /* From fs.c */
 static void luv_push_stats_table(lua_State* L, const uv_stat_t* s);
 
-/* From constants.c */
-static int luv_af_string_to_num(const char* string);
-static const char* luv_af_num_to_string(int num);
-static int luv_sock_string_to_num(const char* string);
-static const char* luv_sock_num_to_string(int num);
-static int luv_sig_string_to_num(const char* string);
-static const char* luv_sig_num_to_string(int num);
-static int luv_proto_string_to_num(const char* string);
-static const char* luv_proto_num_to_string(int num);
-
 /* From util.c */
 // Push a Libuv error code onto the Lua stack
 static int luv_error(lua_State* L, int status);

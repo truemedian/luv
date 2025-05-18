@@ -328,7 +328,7 @@ static int luv_interface_addresses(lua_State* L) {
     lua_pushstring(L, netmask);
     lua_setfield(L, -2, "netmask");
 
-    lua_pushstring(L, luv_af_num_to_string(interfaces[i].address.address4.sin_family));
+    lua_pushstring(L, luv_addrfamily_int2str(interfaces[i].address.address4.sin_family));
     lua_setfield(L, -2, "family");
     lua_rawseti(L, -2, lua_rawlen(L, -2) + 1);
     lua_pop(L, 1);

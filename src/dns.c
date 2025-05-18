@@ -38,7 +38,7 @@ static void luv_pushaddrinfo(lua_State* L, struct addrinfo* res) {
         addr = (char*)&((struct sockaddr_in6*)curr->ai_addr)->sin6_addr;
         port = ((struct sockaddr_in6*)curr->ai_addr)->sin6_port;
       }
-      lua_pushstring(L, luv_af_num_to_string(curr->ai_family));
+      lua_pushstring(L, luv_addrfamily_int2str(curr->ai_family));
       lua_setfield(L, -2, "family");
       uv_inet_ntop(curr->ai_family, addr, ip, INET6_ADDRSTRLEN);
       lua_pushstring(L, ip);
@@ -47,9 +47,9 @@ static void luv_pushaddrinfo(lua_State* L, struct addrinfo* res) {
         lua_pushinteger(L, ntohs(port));
         lua_setfield(L, -2, "port");
       }
-      lua_pushstring(L, luv_sock_num_to_string(curr->ai_socktype));
+      lua_pushstring(L, luv_sockdomain_int2str(curr->ai_socktype));
       lua_setfield(L, -2, "socktype");
-      lua_pushstring(L, luv_proto_num_to_string(curr->ai_protocol));
+      lua_pushstring(L, luv_protocol_int2str(curr->ai_protocol));
       lua_setfield(L, -2, "protocol");
       if (curr->ai_canonname) {
         lua_pushstring(L, curr->ai_canonname);
@@ -109,7 +109,7 @@ static int luv_getaddrinfo(lua_State* L) {
     if (lua_isnumber(L, -1)) {
       hints->ai_family = lua_tointeger(L, -1);
     } else if (lua_isstring(L, -1)) {
-      hints->ai_family = luv_af_string_to_num(lua_tostring(L, -1));
+      hints->ai_family = luv_addrfamily_str2int(lua_tostring(L, -1));
     } else if (lua_isnil(L, -1)) {
       hints->ai_family = AF_UNSPEC;
     } else {
@@ -122,7 +122,7 @@ static int luv_getaddrinfo(lua_State* L) {
     if (lua_isnumber(L, -1)) {
       hints->ai_socktype = lua_tointeger(L, -1);
     } else if (lua_isstring(L, -1)) {
-      hints->ai_socktype = luv_sock_string_to_num(lua_tostring(L, -1));
+      hints->ai_socktype = luv_sockdomain_str2int(lua_tostring(L, -1));
     } else if (!lua_isnil(L, -1)) {
       return luaL_argerror(L, 3, "socktype hint must be string if set");
     }
@@ -133,7 +133,7 @@ static int luv_getaddrinfo(lua_State* L) {
     if (lua_isnumber(L, -1)) {
       hints->ai_protocol = lua_tointeger(L, -1);
     } else if (lua_isstring(L, -1)) {
-      int protocol = luv_proto_string_to_num(lua_tostring(L, -1));
+      int protocol = luv_protocol_str2int(lua_tostring(L, -1));
       if (protocol < 0) {
         return luaL_argerror(L, 3, lua_pushfstring(L, "invalid protocol: %s", lua_tostring(L, -1)));
       }
@@ -278,7 +278,7 @@ static int luv_getnameinfo(lua_State* L) {
   if (lua_isnumber(L, -1)) {
     addr.ss_family = lua_tointeger(L, -1);
   } else if (lua_isstring(L, -1)) {
-    addr.ss_family = luv_af_string_to_num(lua_tostring(L, -1));
+    addr.ss_family = luv_addrfamily_str2int(lua_tostring(L, -1));
   } else if (!lua_isnil(L, -1)) {
     luaL_argerror(L, 1, "family must be string if set");
   }

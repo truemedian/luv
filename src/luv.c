@@ -919,7 +919,7 @@ LUALIB_API int luaopen_luv(lua_State* L) {
   luv_synch_init(L);
   luv_work_init(L);
 
-  luv_constants(L);
+  luv_push_constant_table(L);
   lua_setfield(L, -2, "constants");
 
 #define XX(code, _)              \
