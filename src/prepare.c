@@ -14,42 +14,61 @@
  *  limitations under the License.
  *
  */
-#include "private.h"
 
-static uv_prepare_t *luv_check_prepare(lua_State *L, int index) {
-    uv_prepare_t *handle = (uv_prepare_t *)luv_checkudata(L, index, "uv_prepare");
-    luaL_argcheck(L, handle->type == UV_PREPARE && handle->data, index, "Expected uv_prepare_t");
+#include "prepare.h"
+
+#include "handle.h"
+#include "internal.h"
+
+static luaL_Reg luv_prepare_methods[] = {
+    {"start", luv_prepare_start},
+    {"stop", luv_prepare_stop},
+    {NULL, NULL},
+};
+
+LUV_LIBAPI void luv_prepare_init(lua_State *L) {
+    luv_handle_metatable(L, UV_PREPARE, luv_prepare_methods);
+    lua_pop(L, 1);
+}
+
+LUV_LIBAPI uv_prepare_t *luv_check_prepare(lua_State *L, int index) {
+    luv_handle_t *lhandle = (luv_handle_t *)luaL_checkudata(L, index, "uv_prepare");
+    uv_prepare_t *handle = luv_handle_of(uv_prepare_t, lhandle);
+    luv_typecheck(L, handle->type == UV_PREPARE, index, "uv_prepare");
     return handle;
 }
 
-static int luv_new_prepare(lua_State *L) {
-    luv_ctx_t *ctx = luv_context(L);
-    uv_prepare_t *handle = (uv_prepare_t *)luv_newuserdata(L, uv_handle_size(UV_PREPARE));
-    int ret = uv_prepare_init(ctx->loop, handle);
-    if (ret < 0) {
-        lua_pop(L, 1);
-        return luv_error(L, ret);
-    }
-    handle->data = luv_setup_handle(L, ctx);
+LUV_LUAAPI int luv_new_prepare(lua_State *L) {
+    uv_loop_t *loop = luv_loop(L);
+
+    luv_handle_t *lhandle = luv_new_handle(L, UV_PREPARE);
+    uv_prepare_t *handle = luv_handle_of(uv_prepare_t, lhandle);
+
+    (void)uv_prepare_init(loop, handle);
     return 1;
 }
 
 static void luv_prepare_cb(uv_prepare_t *handle) {
-    luv_handle_t *data = (luv_handle_t *)handle->data;
-    lua_State *L = data->ctx->L;
-    luv_call_callback(L, data, LUV_PREPARE, 0);
+    luv_handle_t *lhandle = luv_handle_from(handle);
+    lua_State *L = luv_handle_state(lhandle);
+
+    luv_callback_send(L, LUV_CB_EVENT, lhandle, 0);
 }
 
-static int luv_prepare_start(lua_State *L) {
+LUV_LUAAPI int luv_prepare_start(lua_State *L) {
     uv_prepare_t *handle = luv_check_prepare(L, 1);
-    int ret;
-    luv_check_callback(L, (luv_handle_t *)handle->data, LUV_PREPARE, 2);
-    ret = uv_prepare_start(handle, luv_prepare_cb);
-    return luv_result(L, ret);
+    luv_handle_t *lhandle = luv_handle_from(handle);
+
+    luv_callback_set(L, LUV_CB_EVENT, lhandle, 2);
+    (void)uv_prepare_start(handle, luv_prepare_cb);
+    return 0;
 }
 
-static int luv_prepare_stop(lua_State *L) {
+LUV_LUAAPI int luv_prepare_stop(lua_State *L) {
     uv_prepare_t *handle = luv_check_prepare(L, 1);
-    int ret = uv_prepare_stop(handle);
-    return luv_result(L, ret);
+    luv_handle_t *lhandle = luv_handle_from(handle);
+
+    luv_callback_unset(L, LUV_CB_EVENT, lhandle);
+    (void)uv_prepare_stop(handle);
+    return 0;
 }
