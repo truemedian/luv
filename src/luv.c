@@ -28,6 +28,7 @@
 #include "fs_poll.c"
 #include "handle.c"
 #include "idle.c"
+#include "internal.h"
 #include "lhandle.c"
 #include "loop.c"
 #include "lreq.c"
@@ -679,205 +680,112 @@ static void luv_req_init(lua_State *L) {
 // Call lua function, will pop nargs values from top of vm stack and push some
 // values according to nresults. When error occurs, it will print error message
 // to stderr, and memory allocation error will cause exit.
-LUALIB_API int luv_cfpcall(lua_State *L, int nargs, int nresult, int flags) {
-    int ret, top, errfunc;
+LUALIB_API int luv_docall(lua_State *L, int nargs, int nresult, int ref_errfunc) {
+    int errf_index = 0;
+    if (ref_errfunc != LUA_REFNIL) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ref_errfunc);
 
-    top = lua_gettop(L);
-    // Get the traceback function in case of error
-    if ((flags & (LUVF_CALLBACK_NOTRACEBACK | LUVF_CALLBACK_NOERRMSG)) == 0) {
-        lua_pushcfunction(L, luv_traceback);
-        errfunc = lua_gettop(L);
-        // And insert it before the function and args
+        // insert it before the function and args
         lua_insert(L, -2 - nargs);
-        errfunc -= (nargs + 1);
-    } else
-        errfunc = 0;
-
-    ret = lua_pcall(L, nargs, nresult, errfunc);
-    switch (ret) {
-        case LUA_OK:
-            break;
-        case LUA_ERRMEM:
-            if ((flags & LUVF_CALLBACK_NOERRMSG) == 0) {
-                fprintf(stderr, "System Error: %s\n", luaL_tolstring(L, lua_absindex(L, -1), NULL));
-                lua_pop(L, 1);  // Remove error string pushed by luaL_tolstring()
-            }
-            if ((flags & LUVF_CALLBACK_NOEXIT) == 0)
-                exit(-1);
-            lua_pop(L, 1);
-            ret = -ret;
-            break;
-        case LUA_ERRRUN:
-        case LUA_ERRERR:
-        default:
-            if ((flags & LUVF_CALLBACK_NOERRMSG) == 0) {
-                fprintf(stderr, "Uncaught Error: %s\n", luaL_tolstring(L, lua_absindex(L, -1), NULL));
-                lua_pop(L, 1);  // Remove error string pushed by luaL_tolstring()
-            }
-            if ((flags & LUVF_CALLBACK_NOEXIT) == 0)
-                exit(-1);
-            lua_pop(L, 1);
-            ret = -ret;
-            break;
+        errf_index = lua_absindex(L, -2 - nargs);
     }
-    if ((flags & (LUVF_CALLBACK_NOTRACEBACK | LUVF_CALLBACK_NOERRMSG)) == 0) {
+
+    int ret = lua_pcall(L, nargs, nresult, errf_index);
+    if (errfunc != 0)
         lua_remove(L, errfunc);
+
+    // if there is an error handler and it returned `true`, we assume the error has been handled and should not be
+    // forwarded.
+    if (errfunc != 0 && lua_isboolean(L, -1)) {
+        if (lua_toboolean(L, -1)) {
+            lua_pop(L, 1);
+            return LUA_OK;
+        }
     }
-    if (ret == LUA_OK) {
-        if (nresult == LUA_MULTRET)
-            nresult = lua_gettop(L) - top + nargs + 1;
-        return nresult;
-    }
+
     return ret;
 }
 
-// Call lua c function in protected mode. When error occurs, it will print
-// error message to stderr, and memory allocation error will cause exit.
-LUALIB_API int luv_cfcpcall(lua_State *L, lua_CFunction func, void *ud, int flags) {
-    lua_pushcfunction(L, func);
-    lua_pushlightuserdata(L, ud);
-    int ret = luv_cfpcall(L, 1, 0, flags);
-    return ret;
-}
-
-// TODO: see if we can avoid using a string key for this to increase performance
-static const char *luv_ctx_key = "luv_context";
-
-// Please look at luv_ctx_t in luv.h
-LUALIB_API luv_ctx_t *luv_context(lua_State *L) {
-    luv_ctx_t *ctx;
-    lua_pushstring(L, luv_ctx_key);
-    lua_rawget(L, LUA_REGISTRYINDEX);
-    if (lua_isnil(L, -1)) {
-        // create it if not exist in registry
-        lua_pushstring(L, luv_ctx_key);
-        ctx = (luv_ctx_t *)lua_newuserdata(L, sizeof(*ctx));
-        memset(ctx, 0, sizeof(*ctx));
-        lua_rawset(L, LUA_REGISTRYINDEX);
-        // create table to contain internal handle
-        lua_newtable(L);
-        ctx->ht_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    } else {
-        ctx = (luv_ctx_t *)lua_touserdata(L, -1);
-    }
-    lua_pop(L, 1);
-    return ctx;
-}
-
-LUALIB_API lua_State *luv_state(lua_State *L) {
-    return luv_context(L)->L;
-}
-
-LUALIB_API uv_loop_t *luv_loop(lua_State *L) {
-    return luv_context(L)->loop;
-}
-
-// Set an external loop, before luaopen_luv
-LUALIB_API void luv_set_loop(lua_State *L, uv_loop_t *loop) {
-    luv_ctx_t *ctx = luv_context(L);
-
-    ctx->loop = loop;
-    ctx->L = L;
-    ctx->mode = -1;
-}
-
-// Set an external event callback routine, before luaopen_luv
-LUALIB_API void luv_set_callback(lua_State *L, luv_CFpcall pcall) {
-    luv_ctx_t *ctx = luv_context(L);
-    ctx->cb_pcall = pcall;
-}
-
-// Set an external thread routine, before luaopen_luv
-LUALIB_API void luv_set_thread(lua_State *L, luv_CFpcall pcall) {
-    luv_ctx_t *ctx = luv_context(L);
-    ctx->thrd_pcall = pcall;
-}
-
-// Set an external c thread routine, before luaopen_luv
-LUALIB_API void luv_set_cthread(lua_State *L, luv_CFcpcall cpcall) {
-    luv_ctx_t *ctx = luv_context(L);
-    ctx->thrd_cpcall = cpcall;
-}
-
-static void walk_cb(uv_handle_t *handle, void *arg) {
+static void luv_loop__gc_walk(uv_handle_t *handle, void *arg) {
     (void)arg;
-    if (!uv_is_closing(handle)) {
-        uv_close(handle, luv_close_cb);
-    }
+    if (!uv_is_closing(handle))
+        uv_close(handle, NULL);
 }
 
-static int loop_gc(lua_State *L) {
-    luv_ctx_t *ctx = luv_context(L);
-    uv_loop_t *loop = ctx->loop;
-    if (loop == NULL)
-        return 0;
-    // Call uv_close on every active handle
-    uv_walk(loop, walk_cb, NULL);
-    // Run the event loop until all handles are successfully closed
-    while (uv_loop_close(loop)) {
+static int luv_loop__gc(lua_State *L) {
+    luv_loop_t *ctx = luv_context(L);
+
+    // call uv_close on every active handle
+    uv_walk(loop, luv_loop__gc_walk, NULL);
+
+    // run the event loop until all handles are successfully closed
+    while (uv_loop_close(loop))
         uv_run(loop, UV_RUN_DEFAULT);
-    }
+
     return 0;
 }
 
-LUALIB_API int luaopen_luv(lua_State *L) {
-#ifdef LUA_RIDX_MAINTHREAD
-    // Lua 5.2+ - resolve the main thread of the current Lua state, even if
-    // we were loaded from a different thread (which may become suspended/dead).
-    lua_geti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
-    lua_State *ctxL = lua_tothread(L, -1);
+static char context_key;
+
+LUV_LIBAPI int luv_loop_init(luv_loop_t *loop) {
+    int ret = uv_loop_init(&loop->loop);
+    if (ret < 0)
+        return ret;
+
+    loop->current = NULL;
+    loop->runner = NULL;
+    loop->mode = -1;
+    loop->errfunc = LUA_REFNIL;
+    loop->pcall = luv_pcall;
+    loop->work_pcall = luv_pcall;
+    loop->thread_pcall = luv_pcall;
+}
+
+LUV_LIBAPI luv_loop_t *luv_context(lua_State *L) {
+    luv_loop_t *ctx;
+
+    if (lua_rawgetp(L, LUA_REGISTRYINDEX, &context_key) == LUA_TNIL) {
+        // create a new luv_loop_t if it doesn't already exist
+        ctx = (luv_loop_t *)lua_newuserdata(L, sizeof(*ctx));
+        memset(ctx, 0, sizeof(*ctx));
+
+        int ret = luv_loop_init(ctx);
+        if (ret < 0)
+            luv_error(L, "loop init failed: %s: %s\n", uv_err_name(ret), uv_strerror(ret));
+
+        luaL_newmetatable(L, "luv_loop");
+        lua_pushcfunction(L, luv_loop__gc);
+        lua_setfield(L, -2, "__gc");
+
+        lua_setmetatable(L, -2);
+        lua_rawsetp(L, LUA_REGISTRYINDEX, &context_key);
+    } else {
+        ctx = (luv_loop_t *)lua_touserdata(L, -1);
+        lua_pop(L, 1);
+    }
+
+    return ctx;
+}
+
+LUV_LIBAPI uv_loop_t *luv_loop(lua_State *L) {
+    return (uv_loop_t *)luv_context(L);
+}
+
+// Set an external loop, before luaopen_luv
+LUV_LIBAPI void luv_set_loop(lua_State *L, luv_loop_t *loop) {
+    if (lua_rawgetp(L, LUA_REGISTRYINDEX, &context_key) != LUA_TNIL)
+        luv_error(L, "luv_set_loop must be called before any other luv function");
+
     lua_pop(L, 1);
-#else
-    lua_State *ctxL = L;
-#endif
+
+    lua_pushlightuserdata(L, loop);
+    lua_rawsetp(L, LUA_REGISTRYINDEX, &context_key);
+}
+
+LUV_LIBAPI int luaopen_luv(lua_State *L) {
     luv_ctx_t *ctx = luv_context(L);
 
     luaL_newlib(L, luv_functions);
-
-    // loop is NULL, luv need to create an inner loop
-    if (ctx->loop == NULL) {
-        int ret;
-        uv_loop_t *loop;
-
-        // Setup the uv_loop meta table for a proper __gc
-        luaL_newmetatable(L, "uv_loop.meta");
-        lua_pushstring(L, "__gc");
-        lua_pushcfunction(L, loop_gc);
-        lua_settable(L, -3);
-        lua_pop(L, 1);
-
-        lua_pushstring(L, "_loop");
-        loop = (uv_loop_t *)lua_newuserdata(L, sizeof(*loop));
-        // setup the userdata's metatable for __gc
-        luaL_getmetatable(L, "uv_loop.meta");
-        lua_setmetatable(L, -2);
-        // create a ref to loop, avoid __gc early
-        // this puts the loop userdata into the _loop key
-        // in the returned luv table
-        lua_rawset(L, -3);
-
-        ctx->loop = loop;
-        ctx->L = ctxL;
-        ctx->mode = -1;
-
-        ret = uv_loop_init(loop);
-        if (ret < 0) {
-            return luaL_error(L, "%s: %s\n", uv_err_name(ret), uv_strerror(ret));
-        }
-    }
-    // pcall is NULL, luv use default callback routine
-    if (ctx->cb_pcall == NULL) {
-        ctx->cb_pcall = luv_cfpcall;
-    }
-
-    // pcall is NULL, luv use default thread routine
-    if (ctx->thrd_pcall == NULL) {
-        ctx->thrd_pcall = luv_cfpcall;
-    }
-
-    if (ctx->thrd_cpcall == NULL) {
-        ctx->thrd_cpcall = luv_cfcpcall;
-    }
 
     luv_req_init(L);
     luv_handle_init(L);
@@ -888,19 +796,8 @@ LUALIB_API int luaopen_luv(lua_State *L) {
     luv_synch_init(L);
     luv_work_init(L);
 
-    luv_constants(L);
+    luv_push_constant_table(L);
     lua_setfield(L, -2, "constants");
-
-#define XX(code, _)                \
-    lua_pushliteral(L, #code);     \
-    lua_pushinteger(L, UV_##code); \
-    lua_rawset(L, -3);
-
-    lua_newtable(L);
-    UV_ERRNO_MAP(XX)
-    lua_setfield(L, -2, "errno");
-
-#undef XX
 
     return 1;
 }

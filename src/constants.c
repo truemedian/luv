@@ -15,10 +15,6 @@
  */
 #include "constants.h"
 
-#include <lua.h>
-#include <stddef.h>
-#include <uv.h>
-
 #include "internal.h"
 
 #ifndef WIN32
@@ -269,6 +265,12 @@ static const struct constant signals[] = {
     {NULL, 0},
 };
 
+static const struct constant errnames[] = {
+#define XX(code, _) {#code, UV_##code},
+    UV_ERRNO_MAP(XX)
+#undef XX
+};
+
 #ifdef _WIN32
 #include <string.h>
 #define strcasecmp _stricmp
@@ -299,6 +301,11 @@ LUV_LIBAPI void luv_push_constant_table(lua_State *L) {
     }
 
     for (const struct constant *val = signals; val->name != NULL; val++) {
+        lua_pushinteger(L, val->value);
+        lua_setfield(L, -2, val->name);
+    }
+
+    for (const struct constant *val = errnames; val->name != NULL; val++) {
         lua_pushinteger(L, val->value);
         lua_setfield(L, -2, val->name);
     }

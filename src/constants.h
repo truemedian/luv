@@ -16,8 +16,6 @@
 #ifndef LUV_CONSTANTS_H
 #define LUV_CONSTANTS_H
 
-#include <lua.h>
-
 #include "internal.h"
 
 /* pushes a table of libuv and system constants onto the stack */
