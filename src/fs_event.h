@@ -12,22 +12,26 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
  */
-#ifndef LUV_LREQ_H
-#define LUV_LREQ_H
+#ifndef LUV_FS_EVENT_H
+#define LUV_FS_EVENT_H
 
-#include "luv.h"
+#include "internal.h"
 
-typedef struct {
-    int req_ref;      /* ref for uv_req_t's userdata */
-    int callback_ref; /* ref for callback */
-    int data_ref;     /* ref for write data */
-    luv_ctx_t *ctx;   /* context for callback */
-    void *data;       /* extra data */
-} luv_req_t;
+LUV_LIBAPI void luv_fs_event_init(lua_State *L);
+LUV_LIBAPI uv_fs_event_t *luv_check_fs_event(lua_State *L, int index);
 
-// This is an arbitrary value that we can assume will never be returned by luaL_ref
-#define LUV_REQ_MULTIREF (-0x1234)
+LUV_LUAAPI int luv_new_fs_event(lua_State *L);
+LUV_LUAAPI int luv_fs_event_start(lua_State *L);
+LUV_LUAAPI int luv_fs_event_stop(lua_State *L);
+LUV_LUAAPI int luv_fs_event_getpath(lua_State *L);
+
+luaL_Reg luv_fs_event_functions[] = {
+    {"new_fs_event", luv_new_fs_event},
+    {"fs_event_start", luv_fs_event_start},
+    {"fs_event_stop", luv_fs_event_stop},
+    {"fs_event_getpath", luv_fs_event_getpath},
+    {NULL, NULL},
+};
 
 #endif

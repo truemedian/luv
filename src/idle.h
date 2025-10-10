@@ -12,22 +12,24 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
  */
-#ifndef LUV_LREQ_H
-#define LUV_LREQ_H
+#ifndef LUV_IDLE_H
+#define LUV_IDLE_H
 
-#include "luv.h"
+#include "internal.h"
 
-typedef struct {
-    int req_ref;      /* ref for uv_req_t's userdata */
-    int callback_ref; /* ref for callback */
-    int data_ref;     /* ref for write data */
-    luv_ctx_t *ctx;   /* context for callback */
-    void *data;       /* extra data */
-} luv_req_t;
+LUV_LIBAPI void luv_idle_init(lua_State *L);
+LUV_LIBAPI uv_idle_t *luv_check_idle(lua_State *L, int index);
 
-// This is an arbitrary value that we can assume will never be returned by luaL_ref
-#define LUV_REQ_MULTIREF (-0x1234)
+LUV_LUAAPI int luv_new_idle(lua_State *L);
+LUV_LUAAPI int luv_idle_start(lua_State *L);
+LUV_LUAAPI int luv_idle_stop(lua_State *L);
+
+luaL_Reg luv_idle_functions[] = {
+    {"new_idle", luv_new_idle},
+    {"idle_start", luv_idle_start},
+    {"idle_stop", luv_idle_stop},
+    {NULL, NULL},
+};
 
 #endif

@@ -12,46 +12,39 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
  */
 #ifndef LUV_H
 #define LUV_H
+#include "internal.h"
 #include "uv.h"
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
-
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
 
 #if defined(_WIN32)
-# include <fcntl.h>
-# include <sys/stat.h>
-# include <sys/types.h>
-# ifndef S_ISREG
-#  define S_ISREG(x)  (((x) & _S_IFMT) == _S_IFREG)
-# endif
-# ifndef S_ISDIR
-#  define S_ISDIR(x)  (((x) & _S_IFMT) == _S_IFDIR)
-# endif
-# ifndef S_ISFIFO
-#  define S_ISFIFO(x) (((x) & _S_IFMT) == _S_IFIFO)
-# endif
-# ifndef S_ISCHR
-#  define S_ISCHR(x)  (((x) & _S_IFMT) == _S_IFCHR)
-# endif
-# ifndef S_ISBLK
-#  define S_ISBLK(x)  0
-# endif
-# ifndef S_ISLNK
-#  define S_ISLNK(x)  (((x) & S_IFLNK) == S_IFLNK)
-# endif
-# ifndef S_ISSOCK
-#  define S_ISSOCK(x) 0
-# endif
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#ifndef S_ISREG
+#define S_ISREG(x) (((x) & _S_IFMT) == _S_IFREG)
+#endif
+#ifndef S_ISDIR
+#define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
+#endif
+#ifndef S_ISFIFO
+#define S_ISFIFO(x) (((x) & _S_IFMT) == _S_IFIFO)
+#endif
+#ifndef S_ISCHR
+#define S_ISCHR(x) (((x) & _S_IFMT) == _S_IFCHR)
+#endif
+#ifndef S_ISBLK
+#define S_ISBLK(x) 0
+#endif
+#ifndef S_ISLNK
+#define S_ISLNK(x) (((x) & S_IFLNK) == S_IFLNK)
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
 #else
-# include <unistd.h>
+#include <unistd.h>
 #endif
 
 #ifndef PATH_MAX
@@ -65,11 +58,6 @@
 #ifndef MAX_THREAD_NAME_LENGTH
 #define MAX_THREAD_NAME_LENGTH (8192)
 #endif
-
-// luv flags to control luv_CFpcall routine
-#define LUVF_CALLBACK_NOEXIT       0x01       // Don't exit when LUA_ERRMEM
-#define LUVF_CALLBACK_NOTRACEBACK  0x02       // Don't traceback when error
-#define LUVF_CALLBACK_NOERRMSG     0x04       // Don't output err message
 
 /* Prototype of external callback routine.
  * The caller and the implementer exchanges data by the lua vm stack.
@@ -86,75 +74,62 @@
  * Need to notice that the implementer must balance the lua vm stack, and maybe
  * exit when memory allocation error.
  */
-typedef int (*luv_CFpcall) (lua_State* L, int nargs, int nresults, int flags);
-
-typedef int (*luv_CFcpcall) (lua_State* L, lua_CFunction func, void* ud, int flags);
+typedef int (*luv_CFpcall)(lua_State *L, int nargs, int nresults, int ref_errfunc);
 
 /* Default implementation of event callback */
-LUALIB_API int luv_cfpcall(lua_State* L, int nargs, int nresult, int flags);
+LUV_LIBAPI int luv_docall(lua_State *L, int nargs, int nresult, int ref_errfunc);
 
-/* Default implementation of thread entory function */
-LUALIB_API int luv_cfcpcall(lua_State* L, lua_CFunction func, void* ud, int flags);
-
+/* The structure which luv expects for a loop. Can be implicitly cast between `luv_loop_t*` and `uv_loop_t*` */
 typedef struct {
-  uv_loop_t*   loop;        /* main loop */
-  lua_State*   L;           /* main thread,ensure coroutines works */
-  luv_CFpcall  cb_pcall;    /* luv event callback function in protected mode */
-  luv_CFpcall  thrd_pcall;  /* luv thread function in protected mode*/
-  luv_CFcpcall thrd_cpcall; /* luv thread c function in protected mode*/
+    /* The libuv loop, must be first to allow for the implicit cast to `uv_loop_t*` */
+    uv_loop_t loop;
 
-  int          mode;        /* the mode used to run the loop (-1 if not running) */
-  int          ht_ref;      /* bookkeeping: maintain table of luv_handle_t pointers,
-                               to distinguish between internal and external handles */
+    /* The thread currently invoking uv_run, if any */
+    lua_State *runner;
 
-  void* extra;              /* extra data */
-} luv_ctx_t;
+    /* The thread currently running, for immediately invoked callbacks */
+    lua_State *current;
+
+    /* The mode used to run the loop (-1 if not running) */
+    int mode;
+
+    /* A registry reference to a function to be used as a error handler for docall.
+     * This function is not automatically forwarded to threads. */
+    int errfunc;
+
+    /* Called for invoking a callback on the main thread */
+    luv_CFpcall docall;
+
+    /* Called for invoking a function on the libuv threadpool.
+     * This function must not call `exit()` under any circumstance.
+     * Doing so will cause an abort in libuv's threadpool cleanup routine. */
+    luv_CFpcall work_docall;
+
+    /* Called for invoking a function on a secondary thread */
+    luv_CFpcall thread_docall;
+} luv_loop_t;
+
+LUV_LIBAPI int luv_loop_init(luv_loop_t *loop);
 
 /* Retrieve all the luv context from a lua_State */
-LUALIB_API luv_ctx_t* luv_context(lua_State* L);
+LUV_LIBAPI luv_loop_t *luv_context(lua_State *L);
 
-/* Retrieve the main thread of the given lua_State */
-LUALIB_API lua_State* luv_state(lua_State* L);
-
-/* Retrieve the uv_loop_t set for the given lua_State
-   Note: Each lua_State can have a custom uv_loop_t
-*/
-LUALIB_API uv_loop_t* luv_loop(lua_State* L);
+LUV_LIBAPI uv_loop_t *luv_loop(lua_State *L);
 
 /* Set or clear an external uv_loop_t in a lua_State
    When using a custom/external loop, this must be called before luaopen_luv
    (otherwise luv will create and use its own loop)
 */
-LUALIB_API void luv_set_loop(lua_State* L, uv_loop_t* loop);
-
-/* Set or clear an external c routine for luv event callback
-   When using a custom/external function, this must be called before luaopen_luv
-   (otherwise luv will use the default callback function: luv_cfpcall)
-*/
-LUALIB_API void luv_set_callback(lua_State* L, luv_CFpcall pcall);
-
-/* Set or clear an external c routine for luv thread When using
- * a custom/external function, this must be called before luaopen_luv
- * in the function that create the lua_State of the thread
-   (otherwise luv will use the default callback function: luv_cfpcall)
-*/
-LUALIB_API void luv_set_thread(lua_State* L, luv_CFpcall pcall);
-
-/* Set or clear an external c routine for luv c thread When using
- * a custom/external function, this must be called before luaopen_luv
- * in the function that create the lua_State of the thread
-   (otherwise luv will use the default callback function: luv_cfcpcall)
-*/
-LUALIB_API void luv_set_cthread(lua_State* L, luv_CFcpcall cpcall);
+LUV_LIBAPI void luv_set_loop(lua_State *L, luv_loop_t *loop);
 
 /* This is the main hook to load the library.
    This can be called multiple times in a process as long
    as you use a different lua_State and thread for each.
 */
-LUALIB_API int luaopen_luv (lua_State *L);
+LUV_LIBAPI int luaopen_luv(lua_State *L);
 
-typedef lua_State* (*luv_acquire_vm)(void);
-typedef void (*luv_release_vm)(lua_State* L);
-LUALIB_API void luv_set_thread_cb(luv_acquire_vm acquire, luv_release_vm release);
+typedef lua_State *(*luv_acquire_vm)(void);
+typedef void (*luv_release_vm)(lua_State *L);
+LUV_LIBAPI void luv_set_thread_cb(luv_acquire_vm acquire, luv_release_vm release);
 
 #endif
