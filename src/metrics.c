@@ -19,33 +19,34 @@
 #include "util.h"
 
 #if LUV_UV_VERSION_GEQ(1, 39, 0)
-static int luv_metrics_idle_time(lua_State* L) {
-  uint64_t idle_time = uv_metrics_idle_time(luv_loop(L));
-  lua_pushinteger(L, idle_time);
-  return 1;
+static int luv_metrics_idle_time(lua_State *L) {
+    uint64_t idle_time = uv_metrics_idle_time(luv_loop(L));
+    lua_pushinteger(L, idle_time);
+    return 1;
 }
 #endif
 
 #if LUV_UV_VERSION_GEQ(1, 45, 0)
 static int luv_metrics_info(lua_State *L) {
-  uv_metrics_t metrics;
-  int ret = uv_metrics_info(luv_loop(L), &metrics);
-  if (ret < 0) return luv_error(L, ret);
+    uv_metrics_t metrics;
+    int ret = uv_metrics_info(luv_loop(L), &metrics);
+    if (ret < 0)
+        return luv_error(L, ret);
 
-  lua_newtable(L);
+    lua_newtable(L);
 
-  lua_pushliteral(L, "loop_count");
-  lua_pushinteger(L, metrics.loop_count);
-  lua_rawset(L, -3);
+    lua_pushliteral(L, "loop_count");
+    lua_pushinteger(L, metrics.loop_count);
+    lua_rawset(L, -3);
 
-  lua_pushliteral(L, "events");
-  lua_pushinteger(L, metrics.events);
-  lua_rawset(L, -3);
+    lua_pushliteral(L, "events");
+    lua_pushinteger(L, metrics.events);
+    lua_rawset(L, -3);
 
-  lua_pushliteral(L, "events_waiting");
-  lua_pushinteger(L, metrics.events_waiting);
-  lua_rawset(L, -3);
+    lua_pushliteral(L, "events_waiting");
+    lua_pushinteger(L, metrics.events_waiting);
+    lua_rawset(L, -3);
 
-  return 1;
+    return 1;
 }
 #endif

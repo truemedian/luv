@@ -12,22 +12,24 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
  */
-#ifndef LUV_LREQ_H
-#define LUV_LREQ_H
+#ifndef LUV_CHECK_H
+#define LUV_CHECK_H
 
-#include "luv.h"
+#include "internal.h"
 
-typedef struct {
-    int req_ref;      /* ref for uv_req_t's userdata */
-    int callback_ref; /* ref for callback */
-    int data_ref;     /* ref for write data */
-    luv_ctx_t *ctx;   /* context for callback */
-    void *data;       /* extra data */
-} luv_req_t;
+LUV_LIBAPI void luv_check_init(lua_State *L);
+LUV_LIBAPI uv_check_t *luv_check_check(lua_State *L, int index);
 
-// This is an arbitrary value that we can assume will never be returned by luaL_ref
-#define LUV_REQ_MULTIREF (-0x1234)
+LUV_LUAAPI int luv_new_check(lua_State *L);
+LUV_LUAAPI int luv_check_start(lua_State *L);
+LUV_LUAAPI int luv_check_stop(lua_State *L);
+
+luaL_Reg luv_check_functions[] = {
+    {"new_check", luv_new_check},
+    {"check_start", luv_check_start},
+    {"check_stop", luv_check_stop},
+    {NULL, NULL},
+};
 
 #endif
